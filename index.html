@@ -1,0 +1,2609 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f3e4e">
+<meta name="description" content="Cancionero: letra y acordes, transposicion y autoscroll.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%B8%3C/text%3E%3C/svg%3E">
+<style>
+:root{color-scheme:light dark}
+body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#fbfbfa}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<title>Cancionero</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+
+<style>
+/* ======================================================================
+   CANCIONERO -- una sola pantalla.
+
+   Color: slate oscuro para la cabecera y la lista en los dos temas (es el
+   aspecto de cancionero de atril que pidio el usuario), verde azulado para
+   los acordes y la accion principal, y neutros con una pizca de ese verde
+   para que no parezcan grises de fabrica.
+
+   Tipografia: Source Sans 3 para la letra -- humanista, abierta, pensada
+   para leerse de lejos y de reojo. IBM Plex Mono para los acordes: el
+   cifrado se ha escrito siempre en maquina de escribir, y ademas separa de
+   un vistazo el acorde de la silaba que tiene debajo.
+   ====================================================================== */
+
+:root{
+  --barra:#2f3e4e;
+  --barra-txt:#eaf0f4;
+  --barra-btn:#3d4e60;
+  --barra-btn-hover:#55697d;
+  --lista:#41525f;
+  --lista-txt:#eef2f5;
+  --lista-suave:#a9b7c2;
+  --lista-activa:#4e6474;
+  --fondo:#ffffff;
+  --panel:#f2f6f5;
+  --borde:#dae2e1;
+  --texto:#1e2b33;
+  --suave:#6c7c85;
+  --acento:#0e7c66;
+  --acento-txt:#ffffff;
+  --peligro:#c0392b;
+  --tam:18px;
+
+  --sans:"Source Sans 3",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+}
+
+/* Tres estados de tema: el visor puede estampar data-theme, puede no
+   estampar nada (y manda el sistema), y encima de todo eso el usuario
+   tiene su propio interruptor, que guarda data-tema y gana siempre. */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]):not([data-tema="claro"]){
+    --barra:#151a21; --barra-txt:#dfe4ea; --barra-btn:#242b35; --barra-btn-hover:#333d4a;
+    --lista:#171c24; --lista-txt:#e2e7ee; --lista-suave:#7d8899; --lista-activa:#232b36;
+    --fondo:#0f1319; --panel:#171c24; --borde:#2a323d;
+    --texto:#e4e9f0; --suave:#8b96a6; --acento:#2fd0a5; --acento-txt:#0f1319;
+    --peligro:#ff6b6b;
+  }
+}
+:root[data-theme="dark"]:not([data-tema="claro"]){
+  --barra:#151a21; --barra-txt:#dfe4ea; --barra-btn:#242b35; --barra-btn-hover:#333d4a;
+  --lista:#171c24; --lista-txt:#e2e7ee; --lista-suave:#7d8899; --lista-activa:#232b36;
+  --fondo:#0f1319; --panel:#171c24; --borde:#2a323d;
+  --texto:#e4e9f0; --suave:#8b96a6; --acento:#2fd0a5; --acento-txt:#0f1319;
+  --peligro:#ff6b6b;
+}
+:root[data-tema="oscuro"]{
+  --barra:#151a21; --barra-txt:#dfe4ea; --barra-btn:#242b35; --barra-btn-hover:#333d4a;
+  --lista:#171c24; --lista-txt:#e2e7ee; --lista-suave:#7d8899; --lista-activa:#232b36;
+  --fondo:#0f1319; --panel:#171c24; --borde:#2a323d;
+  --texto:#e4e9f0; --suave:#8b96a6; --acento:#2fd0a5; --acento-txt:#0f1319;
+  --peligro:#ff6b6b;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--texto);font:15px/1.5 var(--sans)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+/* La app ocupa el marco entero; position:fixed es lo unico fiable dentro
+   de un iframe cuya altura no hereda de <html>. */
+#app{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--fondo)}
+
+/* --- Cabecera --- */
+#cabecera{
+  display:flex;gap:8px;align-items:center;flex:0 0 auto;
+  padding:8px 12px;background:var(--barra);color:var(--barra-txt);
+}
+#cabecera .icono{
+  flex:0 0 auto;width:38px;height:38px;border-radius:8px;
+  background:var(--barra-btn);font-size:17px;line-height:1;cursor:pointer;
+  /* inline-flex tambien por el <label> de importar: un label no centra su
+     texto como hace un <button>. */
+  display:inline-flex;align-items:center;justify-content:center;
+}
+#cabecera .icono:hover{background:var(--barra-btn-hover)}
+#marca{
+  font-weight:700;letter-spacing:.08em;font-size:12px;opacity:.8;flex:0 0 auto;
+  text-transform:uppercase;
+}
+#buscar{
+  flex:1;min-width:0;padding:9px 14px;border-radius:8px;font-family:var(--sans);
+  background:rgba(255,255,255,.13);border:1px solid transparent;
+  color:var(--barra-txt);font-size:16px;
+}
+#buscar::placeholder{color:rgba(255,255,255,.58)}
+#buscar:focus{outline:none;background:rgba(255,255,255,.21);border-color:rgba(255,255,255,.4)}
+#btn-nueva{
+  flex:0 0 auto;padding:9px 14px;border-radius:8px;font-weight:600;
+  background:var(--acento);color:var(--acento-txt);
+}
+
+.btn{
+  padding:7px 12px;border-radius:7px;border:1px solid var(--borde);
+  background:var(--panel);white-space:nowrap;font-size:13px;
+}
+.btn:hover{border-color:var(--acento);color:var(--acento)}
+.btn.activo{background:var(--acento);color:var(--acento-txt);border-color:var(--acento)}
+.btn.peligro:hover{border-color:var(--peligro);color:var(--peligro)}
+
+/* --- Cuerpo --- */
+#cuerpo{flex:1;display:flex;min-height:0}
+#panel{
+  flex:0 0 268px;background:var(--lista);color:var(--lista-txt);
+  display:flex;flex-direction:column;min-height:0;
+}
+#app.sin-lista #panel{display:none}
+#lista-cabecera{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;flex:0 0 auto;
+  border-bottom:1px solid rgba(255,255,255,.1);
+  font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--lista-suave);
+}
+#btn-grupos{margin-left:auto;color:var(--lista-suave);font-size:12px}
+#btn-grupos:hover{color:var(--lista-txt)}
+#lista{flex:1;overflow-y:auto}
+/* Una sola linea por cancion: titulo y artista comparten el renglon en vez de
+   gastar dos. Los dos se recortan con puntos suspensivos si no caben. */
+.item{
+  padding:9px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06);
+  display:flex;gap:7px;align-items:baseline;
+}
+.item:hover{background:var(--lista-activa)}
+.item.activa{background:var(--lista-activa);box-shadow:inset 3px 0 0 var(--acento)}
+.item b,.item .art{
+  flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.item b{font-weight:600;font-size:14px}
+.item .art{color:var(--lista-suave);font-size:12px}
+#lista h4{
+  margin:0;padding:9px 12px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--lista-suave);background:rgba(0,0,0,.2);cursor:pointer;
+  display:flex;align-items:center;gap:7px;user-select:none;font-weight:600;
+}
+#lista h4:hover{color:var(--lista-txt)}
+#lista h4 .flecha{font-size:9px;transition:transform .15s}
+#lista h4.plegado .flecha{transform:rotate(-90deg)}
+#lista h4 .cuenta{margin-left:auto;opacity:.65;letter-spacing:0;font-variant-numeric:tabular-nums}
+#vacio{padding:26px 16px;color:var(--lista-suave);text-align:center;line-height:1.7;font-size:13px}
+
+#vista{flex:1;overflow-y:auto;padding-bottom:60vh}
+#nada{
+  height:100%;display:flex;align-items:center;justify-content:center;
+  color:var(--suave);text-align:center;padding:24px;
+}
+#nada[hidden]{display:none}
+
+/* --- Barra de la cancion --- */
+/* La barra se aprieta todo lo posible: lo que tiene que ocupar espacio es la
+   cancion. Titulo, artista, acordes y controles van en UNA sola fila, que se
+   parte sola cuando no cabe. */
+#barra{
+  position:sticky;top:0;z-index:5;background:var(--fondo);
+  border-bottom:1px solid var(--borde);padding:8px 20px;
+}
+#encabezado{
+  display:flex;align-items:baseline;gap:8px;min-width:0;flex:1 1 240px;overflow:hidden;
+}
+#titulo,#artista,#meta{
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;
+}
+#titulo{font-size:17px;font-weight:700;letter-spacing:-.01em}
+#artista{color:var(--suave);font-size:14px}
+#meta{color:var(--suave);font-size:11px;font-family:var(--mono);font-weight:500}
+#controles{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+#controles .btn{padding:6px 10px}
+#velocidad{width:96px;accent-color:var(--acento)}
+#vel-txt{color:var(--suave);font-size:12px;min-width:26px;font-variant-numeric:tabular-nums}
+.sep{flex:1}
+
+#tono-ctrl{display:flex;border:1px solid var(--borde);border-radius:7px;overflow:hidden}
+#tono-ctrl button{padding:7px 11px;font-size:13px;background:var(--panel)}
+#tono-ctrl button:hover{background:var(--acento);color:var(--acento-txt)}
+#btn-tono{
+  font-family:var(--mono);font-weight:600;min-width:56px;
+  border-left:1px solid var(--borde);border-right:1px solid var(--borde);
+}
+#btn-tono.movido{color:var(--acento)}
+
+/* --- Cifrado --- */
+/* A una columna la cancion se centra en una medida comoda en vez de quedarse
+   pegada al margen izquierdo de una pantalla ancha. El texto sigue alineado
+   a la izquierda dentro del bloque: centrarlo destruiria la alineacion entre
+   cada acorde y su silaba. */
+#cifrado{padding:20px 22px;font-size:var(--tam);max-width:62rem;margin-inline:auto}
+#cifrado.cols-2{
+  max-width:none;column-count:2;column-gap:34px;column-rule:1px solid var(--borde);
+}
+.seccion{margin-bottom:20px}
+.seccion h3{
+  margin:0 0 6px;font-size:.66em;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--acento);font-weight:700;
+  break-after:avoid;   /* un titulo no se queda solo al final de la columna */
+}
+/* Se protege la LINEA, no la seccion entera: asi un acorde nunca se separa de
+   su silaba, y a la vez una cancion sin encabezados (que es una unica seccion
+   larguisima) puede repartirse entre columnas en lugar de amontonarse toda en
+   una y dejar la otra vacia. */
+.linea{margin-bottom:2px;break-inside:avoid}
+.linea.hueco{height:.8em}
+.seg{display:inline-block;vertical-align:bottom;white-space:pre}
+.ac{
+  display:block;line-height:1.3;min-height:1.3em;color:var(--acento);
+  font-family:var(--mono);font-weight:600;font-size:.78em;
+}
+.tx{display:block;line-height:1.45;min-height:1.45em}
+.linea.solo-acordes .ac{padding-right:1.1em}
+.linea.solo-acordes .tx{min-height:0}
+.linea.letra{line-height:1.5;white-space:pre-wrap}
+/* Negritas de la letra: en Word marcan donde cae el acento de la silaba. */
+.tx b,.linea.letra b{font-weight:700}
+
+/* --- Vista fuente ------------------------------------------------------
+   El texto EXACTO que trajo el documento: sin interpretar acordes, sin
+   quitar sangrias y sin reajustar nada. Monoespaciada y con su propio
+   scroll horizontal, para que una linea larga no arrastre la pagina. */
+/* Fondo de papel SIEMPRE claro: los colores que trae el Word estan pensados
+   para tinta sobre blanco, y sobre el tema oscuro no se leerian igual. */
+#fuente{
+  display:none;margin:0;padding:20px 22px;
+  background:#fbfaf7;color:#1a1a1a;
+  font:calc(var(--tam) * .82)/1.5 var(--mono);
+  white-space:pre;overflow-x:auto;
+}
+.orig-linea{min-height:1.5em}
+.orig-aviso{
+  white-space:normal;margin:-6px 0 14px;padding:8px 10px;border-radius:6px;
+  background:#efece4;color:#5a5449;font:400 12px/1.45 var(--sans);
+  max-width:60ch;
+}
+#app.fuente #cifrado{display:none}
+#app.fuente #fuente{display:block}
+
+/* --- Modo concentracion --- */
+#app.concentracion #cabecera,
+#app.concentracion #panel,
+#app.concentracion #meta,
+#app.concentracion #artista{display:none}
+#app.concentracion #cifrado{padding:18px max(22px,5vw) 0;font-size:calc(var(--tam) * 1.15)}
+#app.concentracion #barra{padding:6px 22px}
+#app.concentracion #titulo{font-size:14px;font-weight:600;color:var(--suave)}
+
+/* --- Ventanas --- */
+.velo{position:fixed;inset:0;background:rgba(10,16,20,.6);z-index:20;display:none;padding:16px}
+.velo.abierto{display:flex;align-items:center;justify-content:center}
+#caja{
+  background:var(--fondo);border:1px solid var(--borde);border-radius:12px;
+  width:min(1100px,100%);height:min(90vh,100%);display:flex;flex-direction:column;
+  box-shadow:0 18px 50px rgba(0,0,0,.35);overflow:hidden;
+}
+#caja header,#caja footer{display:flex;gap:10px;align-items:center;padding:12px 16px}
+#caja header{border-bottom:1px solid var(--borde)}
+#caja footer{border-top:1px solid var(--borde)}
+#caja header h2{margin:0;font-size:16px;flex:1;font-weight:600}
+#campos{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;border-bottom:1px solid var(--borde)}
+#campos input,#campos select{
+  padding:9px 11px;border-radius:8px;background:var(--panel);font-family:var(--sans);
+  border:1px solid var(--borde);color:var(--texto);font-size:16px;min-width:0;
+}
+#campos input:focus,#campos select:focus{outline:none;border-color:var(--acento)}
+#f-titulo{flex:3 1 220px} #f-artista{flex:2 1 160px}
+#f-tono{flex:0 1 90px} #f-capo{flex:0 1 90px} #f-etiquetas{flex:2 1 150px}
+#f-genero{flex:2 1 150px} #f-columnas{flex:0 1 130px}
+#taller{flex:1;display:flex;min-height:0}
+#f-contenido{
+  flex:1;min-width:0;padding:14px 16px;border:0;border-right:1px solid var(--borde);
+  background:var(--panel);color:var(--texto);resize:none;
+  font:14px/1.55 var(--mono);
+}
+#f-contenido:focus{outline:none}
+#previa{flex:1;min-width:0;overflow-y:auto;padding:14px 16px;font-size:16px}
+#previa .aviso{color:var(--suave);font-size:12px;margin-bottom:10px}
+#estado{color:var(--suave);font-size:13px;flex:1}
+#estado.error{color:var(--peligro)}
+#btn-guardar{background:var(--acento);color:var(--acento-txt);border-color:var(--acento);font-weight:600;padding:9px 18px}
+#btn-guardar:hover{color:var(--acento-txt)}
+
+#caja-grupos{
+  background:var(--fondo);border:1px solid var(--borde);border-radius:12px;
+  width:min(470px,100%);max-height:min(80vh,100%);display:flex;flex-direction:column;
+  box-shadow:0 18px 50px rgba(0,0,0,.35);overflow:hidden;
+}
+#caja-grupos header,#caja-grupos footer{display:flex;gap:8px;align-items:center;padding:12px 16px}
+#caja-grupos header{border-bottom:1px solid var(--borde)}
+#caja-grupos footer{border-top:1px solid var(--borde)}
+#caja-grupos header h2{margin:0;font-size:16px;flex:1;font-weight:600}
+#lista-grupos{overflow-y:auto;padding:6px 0}
+.fila-grupo{display:flex;gap:8px;align-items:center;padding:7px 16px}
+.fila-grupo input,#f-nuevo-grupo{
+  flex:1;min-width:0;padding:8px 10px;border-radius:7px;background:var(--panel);
+  border:1px solid var(--borde);color:var(--texto);font-size:15px;font-family:var(--sans);
+}
+.fila-grupo input:focus,#f-nuevo-grupo:focus{outline:none;border-color:var(--acento)}
+.fila-grupo .cuenta{color:var(--suave);font-size:12px;white-space:nowrap}
+#estado-grupos{color:var(--peligro);font-size:12px;padding:0 16px 8px;min-height:0}
+
+/* --- Copia de seguridad --- */
+#caja-copia{
+  background:var(--fondo);border:1px solid var(--borde);border-radius:12px;
+  width:min(480px,100%);display:flex;flex-direction:column;
+  box-shadow:0 18px 50px rgba(0,0,0,.35);overflow:hidden;
+}
+#caja-copia header,#caja-copia footer{display:flex;gap:8px;align-items:center;padding:12px 16px}
+#caja-copia header{border-bottom:1px solid var(--borde)}
+#caja-copia footer{border-top:1px solid var(--borde);flex-wrap:wrap}
+#caja-copia header h2{margin:0;font-size:16px;flex:1;font-weight:600}
+#texto-copia{padding:14px 16px 4px;color:var(--suave);font-size:13px;line-height:1.55}
+#texto-copia p{margin:0}
+#estado-copia{padding:0 16px 10px;font-size:12px;color:var(--acento);min-height:0}
+#estado-copia.error{color:var(--peligro)}
+#btn-bajar-copia{background:var(--acento);color:var(--acento-txt);border-color:var(--acento);font-weight:600}
+#btn-bajar-copia:hover{color:var(--acento-txt)}
+
+/* --- Importacion masiva --- */
+#caja-lote{
+  background:var(--fondo);border:1px solid var(--borde);border-radius:12px;
+  width:min(760px,100%);max-height:min(85vh,100%);display:flex;flex-direction:column;
+  box-shadow:0 18px 50px rgba(0,0,0,.35);overflow:hidden;
+}
+#caja-lote header,#caja-lote footer{display:flex;gap:9px;align-items:center;padding:12px 16px}
+#caja-lote header{border-bottom:1px solid var(--borde)}
+#caja-lote footer{border-top:1px solid var(--borde);flex-wrap:wrap}
+#caja-lote header h2{margin:0;font-size:16px;flex:1;font-weight:600}
+#etiq-lote-genero{color:var(--suave);font-size:13px}
+#f-lote-genero{
+  padding:8px 10px;border-radius:7px;background:var(--panel);
+  border:1px solid var(--borde);color:var(--texto);font-size:15px;font-family:var(--sans);
+}
+#f-lote-genero:focus{outline:none;border-color:var(--acento)}
+#estado-lote{flex:1;color:var(--suave);font-size:13px;min-width:120px}
+#estado-lote.error{color:var(--peligro)}
+#btn-guardar-lote{background:var(--acento);color:var(--acento-txt);border-color:var(--acento);font-weight:600;padding:9px 18px}
+#btn-guardar-lote:hover{color:var(--acento-txt)}
+#btn-guardar-lote[disabled]{opacity:.45;cursor:default}
+#lista-lote{overflow-y:auto;padding:4px 0}
+.fila-lote{
+  display:flex;gap:10px;align-items:center;padding:8px 16px;
+  border-bottom:1px solid var(--borde);
+}
+.fila-lote:last-child{border-bottom:0}
+.fila-lote input[type=checkbox]{accent-color:var(--acento);width:17px;height:17px;flex:0 0 auto}
+.fila-lote .datos{flex:1;min-width:0}
+.fila-lote .datos input{
+  width:100%;padding:6px 9px;border-radius:6px;background:var(--panel);
+  border:1px solid var(--borde);color:var(--texto);font-size:15px;font-family:var(--sans);
+}
+.fila-lote .datos input:focus{outline:none;border-color:var(--acento)}
+.fila-lote .marca{
+  flex:0 0 auto;font-size:12px;white-space:nowrap;color:var(--suave);
+  font-variant-numeric:tabular-nums;text-align:right;
+}
+.fila-lote .marca.bien{color:var(--acento)}
+.fila-lote .marca.mal{color:var(--peligro);white-space:normal;max-width:230px;text-align:right}
+
+/* --- Aviso cuando no hay almacenamiento --- */
+#sin-db{
+  display:none;padding:9px 16px;background:var(--panel);color:var(--suave);
+  border-bottom:1px solid var(--borde);font-size:13px;flex:0 0 auto;
+}
+#sin-db .btn{margin-left:4px;padding:5px 12px;font-weight:600}
+#app.sin-db #sin-db{display:block}
+
+/* --- Movil --- */
+@media (max-width:760px){
+  #panel{flex:1 1 auto}
+  #app.sin-lista #panel{display:flex}
+  #vista{display:none}
+  #app.viendo #panel{display:none}
+  #app.viendo #vista{display:block}
+  #marca,#btn-lista{display:none}
+  #barra{padding:7px 12px}
+  #titulo{font-size:15px} #artista{font-size:12px} #meta{display:none}
+  #cifrado{padding:12px}
+  /* Dos columnas de cifrado en una pantalla estrecha no se leen: se fuerza
+     una sola sin tocar lo que la cancion tiene guardado. */
+  #cifrado.cols-2{column-count:1;column-rule:0}
+  #controles{gap:5px}
+  #controles .btn,#tono-ctrl button{padding:5px 8px;font-size:12px}
+  #btn-tono{min-width:46px}
+  #velocidad{width:72px}
+  #taller{flex-direction:column}
+  #f-contenido{border-right:0;border-bottom:1px solid var(--borde);min-height:38vh}
+  #previa{min-height:22vh}
+}
+</style>
+
+<script>
+// El tema propio se aplica antes de pintar: sin esto se veria un destello
+// del tema del visor antes de cambiar al elegido por el usuario.
+(function () {
+  try {
+    var t = localStorage.getItem('tema');
+    if (t) document.documentElement.dataset.tema = t;
+  } catch (e) {}
+})();
+</script>
+
+<div id="app">
+  <header id="cabecera">
+    <button class="icono" id="btn-lista" title="Mostrar u ocultar la lista" aria-label="Mostrar u ocultar la lista">&#9776;</button>
+    <span id="marca">Cancionero</span>
+    <input id="buscar" type="search" placeholder="Buscar cancion, artista o letra..." autocomplete="off" aria-label="Buscar">
+    <button id="btn-nueva">+ Nueva</button>
+    <label class="icono" id="btn-lote" for="f-lote" title="Importar varios documentos de golpe (Word o PDF)">&#8615;</label>
+    <input id="f-lote" type="file" accept=".docx,.pdf" multiple hidden>
+    <button class="icono" id="btn-tema" title="Cambiar entre claro y oscuro" aria-label="Cambiar entre claro y oscuro">&#9680;</button>
+  </header>
+
+  <div id="sin-db"></div>
+
+  <div id="cuerpo">
+    <aside id="panel">
+      <div id="lista-cabecera">
+        <span>Canciones</span>
+        <button id="btn-grupos" title="Crear, renombrar o borrar generos">Generos &#9881;</button>
+        <button id="btn-copia" title="Descargar o restaurar una copia del repertorio">Copia &#8645;</button>
+      </div>
+      <div id="lista"></div>
+    </aside>
+
+    <section id="vista">
+      <div id="nada">Elige una cancion de la lista para empezar.</div>
+
+      <div id="barra" hidden>
+        <div id="controles">
+          <button class="btn" id="btn-volver" hidden>&larr;</button>
+          <span id="encabezado">
+            <b id="titulo"></b>
+            <span id="artista"></span>
+            <span id="meta"></span>
+          </span>
+          <button class="btn" id="btn-scroll">&#9654; Autoscroll</button>
+          <input id="velocidad" type="range" min="4" max="60" step="1" title="Velocidad del autoscroll" aria-label="Velocidad del autoscroll">
+          <span id="vel-txt"></span>
+          <div id="tono-ctrl">
+            <button id="btn-bajar" title="Bajar medio tono" aria-label="Bajar medio tono">&#9837;</button>
+            <button id="btn-tono" title="Volver al tono original">&mdash;</button>
+            <button id="btn-subir" title="Subir medio tono" aria-label="Subir medio tono">&#9839;</button>
+          </div>
+          <button class="btn" id="btn-columnas" title="Columnas en las que se reparte la cancion">1 col</button>
+          <button class="btn" id="btn-fuente" title="Ver el texto tal cual vino del documento, sin interpretar acordes">Original</button>
+          <button class="btn" id="btn-menos" title="Letra mas pequena">A&minus;</button>
+          <button class="btn" id="btn-mas" title="Letra mas grande">A+</button>
+          <button class="btn" id="btn-foco">Concentracion</button>
+          <button class="btn" id="btn-editar">Editar</button>
+        </div>
+      </div>
+
+      <div id="cifrado"></div>
+      <pre id="fuente"></pre>
+    </section>
+  </div>
+</div>
+
+<div id="editor" class="velo">
+  <div id="caja">
+    <header>
+      <h2 id="editor-titulo">Nueva cancion</h2>
+      <label class="btn" for="f-docx">Importar Word</label>
+      <input id="f-docx" type="file" accept=".docx" hidden>
+      <button class="btn" id="btn-cerrar">Cerrar</button>
+    </header>
+    <div id="campos">
+      <input id="f-titulo" placeholder="Titulo" aria-label="Titulo">
+      <input id="f-artista" placeholder="Artista" aria-label="Artista">
+      <input id="f-tono" placeholder="Tono" aria-label="Tono">
+      <input id="f-capo" type="number" min="0" max="12" placeholder="Capo" aria-label="Capo">
+      <select id="f-genero" aria-label="Genero"></select>
+      <select id="f-columnas" aria-label="Columnas">
+        <option value="1">1 columna</option>
+        <option value="2">2 columnas</option>
+      </select>
+      <input id="f-etiquetas" placeholder="Etiquetas" aria-label="Etiquetas">
+    </div>
+    <div id="taller">
+      <textarea id="f-contenido" spellcheck="false" aria-label="Cifrado de la cancion" placeholder="Pega aqui la cancion.
+
+Los acordes pueden ir encima de la letra:
+
+       C           G
+Cuando yo te vi
+
+o dentro de la letra: Cuando [C]yo te [G]vi
+
+Escribe [Coro] o CORO para separar secciones."></textarea>
+      <div id="previa"></div>
+    </div>
+    <footer>
+      <button class="btn peligro" id="btn-borrar" hidden>Borrar cancion</button>
+      <span id="estado"></span>
+      <button class="btn" id="btn-guardar">Guardar</button>
+    </footer>
+  </div>
+</div>
+
+<div id="grupos" class="velo">
+  <div id="caja-grupos">
+    <header>
+      <h2>Generos</h2>
+      <button class="btn" id="btn-cerrar-grupos">Cerrar</button>
+    </header>
+    <div id="lista-grupos"></div>
+    <div id="estado-grupos"></div>
+    <footer>
+      <input id="f-nuevo-grupo" placeholder="Nombre del nuevo genero" autocomplete="off" aria-label="Nombre del nuevo genero">
+      <button class="btn" id="btn-add-grupo">Anadir</button>
+    </footer>
+  </div>
+</div>
+
+<div id="lote" class="velo">
+  <div id="caja-lote">
+    <header>
+      <h2>Importar varias canciones</h2>
+      <button class="btn" id="btn-cerrar-lote">Cerrar</button>
+    </header>
+    <div id="lista-lote"></div>
+    <footer>
+      <span id="estado-lote"></span>
+      <button class="btn" id="btn-guardar-lote">Guardar</button>
+    </footer>
+  </div>
+</div>
+
+<div id="copia" class="velo">
+  <div id="caja-copia">
+    <header>
+      <h2>Copia de seguridad</h2>
+      <button class="btn" id="btn-cerrar-copia">Cerrar</button>
+    </header>
+    <div id="texto-copia">
+      <p>Un solo archivo con todo tu repertorio: canciones, generos, tonos y
+      formato. Sirve para respaldarlo, para pasarlo a otro dispositivo y para
+      moverlo entre esta version y cualquier otra.</p>
+    </div>
+    <div id="estado-copia"></div>
+    <footer>
+      <button class="btn" id="btn-bajar-copia">Descargar copia</button>
+      <label class="btn" for="f-copia">Restaurar desde archivo</label>
+      <button class="btn" id="btn-traer">Traer del sitio</button>
+      <button class="btn" id="btn-salir" hidden>Cerrar sesion</button>
+      <input id="f-copia" type="file" accept=".json,application/json" hidden>
+    </footer>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+"use strict";
+
+const $ = (s) => document.querySelector(s);
+const app = $('#app');
+
+let db = null;            // almacen del artifact, o null si no esta disponible
+let canciones = [];       // repertorio entero, en memoria
+let generos = [];
+let actual = null;        // cancion abierta
+let editando = null;      // id que se esta editando (null = nueva)
+let semis = 0;            // semitonos de transposicion de la cancion abierta
+
+const guardar1 = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+const leer1 = (k, x) => { try { const v = localStorage.getItem(k); return v === null ? x : v; } catch (e) { return x; } };
+const entre = (v, min, max, x) => (Number.isFinite(v) ? Math.max(min, Math.min(max, v)) : x);
+
+const VEL_MIN = 4, VEL_MAX = 60, MAX_COLUMNAS = 2;
+// Los limites se aplican AL LEER: una preferencia guardada con un rango
+// anterior dejaria la app fuera de rango para siempre.
+const pref = {
+  tam: entre(+leer1('tam', 18), 12, 40, 18),
+  vel: entre(+leer1('vel', 16), VEL_MIN, VEL_MAX, 16),
+};
+document.documentElement.style.setProperty('--tam', pref.tam + 'px');
+
+const nuevoId = () => (crypto.randomUUID ? crypto.randomUUID()
+  : Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+
+// ======================================================================
+//  PARSER DEL CIFRADO
+//  Texto plano -> secciones y lineas, con cada acorde ya emparejado con la
+//  silaba que le toca. Se calcula al vuelo cada vez que se lee la cancion:
+//  la unica fuente de verdad es el texto tal como lo escribio el usuario.
+// ======================================================================
+const _RAIZ = '(?:[A-G]|[Dd]o|[Rr]e|[Mm]i|[Ff]a|[Ss]ol|[Ll]a|[Ss]i)';
+const _ALT = '(?:[#b♯♭])?';
+const _ATOMO = '(?:maj|Maj|MAJ|min|dim|aug|sus|add|alt|no|m|M|°|ø|\\+|\\-|\\d+|#\\d+|b\\d+|\\(|\\))';
+
+// Anclada a proposito: el token entero tiene que ser raiz + alteracion +
+// sufijos conocidos. Por eso "Casa", "Amor", "Dime" o "Solo" empiezan por
+// una nota valida pero no cuelan como acordes.
+const ACORDE_RE = new RegExp('^' + _RAIZ + _ALT + '(?:' + _ATOMO + ')*(?:/' + _RAIZ + _ALT + ')?$');
+
+// Raices latinas que ademas son palabras corrientes: una linea formada solo
+// por estas es ambigua ("la la la" es letra, no acordes).
+const AMBIGUOS = new Set(['do', 're', 'mi', 'fa', 'sol', 'la', 'si']);
+
+// Marcas de repeticion que viajan dentro de la fila de acordes.
+const MARCA_RE = /^(?:\(?[xX]\d{1,2}\)?|\(?\d{1,2}[xX]\)?|:?\|{1,2}:?|%|[Bb]is)$/;
+
+const SECCION_RE = /^\s*(intro|introduccion|verso|verse|estrofa|coro|chorus|estribillo|pre-?coro|pre-?chorus|puente|bridge|solo|instrumental|interludio|final|outro|tag|coda|repite|repeat)\s*([0-9]+|[ivx]+)?\s*:?\s*$/i;
+
+// "C1:", "Coro:" -- etiqueta corta con dos puntos, con o sin acordes detras.
+// Se limita a una o dos palabras para que una frase de letra con dos puntos
+// ("y entonces me dijo: no te vayas") no se tome por seccion.
+const ETIQUETA_RE = /^(\s*)([\wÀ-ɏ]+(?:\s+[\wÀ-ɏ]+)?)\s*:[ \t]*(.*)$/;
+const ETIQUETA_MAX = 18;
+
+const CORCHETES_RE = () => /\[([^\[\]]+)\]/g;
+
+const esAcorde = (t) => !!t && ACORDE_RE.test(t);
+
+function expandirTabs(linea, ancho) {
+  let salida = '';
+  for (const ch of linea) {
+    if (ch === '\t') salida += ' '.repeat(ancho - (salida.length % ancho));
+    else salida += ch;
+  }
+  return salida;
+}
+
+function esLineaDeAcordes(linea) {
+  const tokens = linea.split(/\s+/).filter((t) => t && !MARCA_RE.test(t));
+  if (!tokens.length || !tokens.every(esAcorde)) return false;
+  if (tokens.some((t) => !AMBIGUOS.has(t.toLowerCase()))) return true;
+  // Sin ningun acorde inequivoco, vale la separacion ancha entre tokens,
+  // que es la firma de un cifrado colocado sobre la letra.
+  return linea.trim().includes('  ');
+}
+
+function nombreDeSeccion(linea) {
+  const limpia = linea.trim();
+  if (!limpia) return null;
+  // "[Coro]" es seccion, pero "[C]" o "[Am]" son acordes.
+  if (limpia.startsWith('[') && limpia.endsWith(']') && (limpia.match(/\[/g) || []).length === 1) {
+    const dentro = limpia.slice(1, -1).trim();
+    if (dentro && !esAcorde(dentro)) return dentro;
+  }
+  const m = SECCION_RE.exec(limpia);
+  if (m) {
+    let nombre = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
+    if (m[2]) nombre += ' ' + m[2];
+    return nombre;
+  }
+  return null;
+}
+
+// Empareja la fila de acordes con la letra de debajo por posicion de
+// columna. El resultado ya viene troceado, asi que el navegador no necesita
+// fuente monoespaciada para alinear.
+// --- NEGRITAS ----------------------------------------------------------
+// En Word el usuario marca en negrita la silaba donde cae el acento, y eso es
+// informacion musical que hay que conservar. Viaja dentro del propio texto
+// entre ** **, para que el contenido siga siendo UNA SOLA CADENA editable a
+// mano y no haga falta una estructura paralela que se desincronice.
+//
+// Las marcas se quitan ANTES de medir columnas: si no, los ** contarian como
+// caracteres y cada acorde caeria dos posiciones a la derecha de su silaba.
+// La negrita se guarda como un booleano por caracter, que se corta con
+// slice() igual que el texto: asi no hay indices que reajustar.
+const NEGRITA_RE = /\*\*(.+?)\*\*/g;
+
+function extraerNegritas(linea) {
+  if (!linea.includes('**')) return {texto: linea, bold: null};
+  let texto = '';
+  const bold = [];
+  const anadir = (parte, negrita) => {
+    texto += parte;
+    for (let i = 0; i < parte.length; i++) bold.push(negrita);
+  };
+  let pos = 0;
+  for (const m of linea.matchAll(NEGRITA_RE)) {
+    anadir(linea.slice(pos, m.index), false);
+    anadir(m[1], true);
+    pos = m.index + m[0].length;
+  }
+  anadir(linea.slice(pos), false);
+  return {texto, bold: bold.some(Boolean) ? bold : null};
+}
+
+function corta(l, ini, fin) {
+  const texto = l.texto.slice(ini, fin);
+  const bold = l.bold ? l.bold.slice(ini, fin) : null;
+  return {texto, bold: bold && bold.some(Boolean) ? bold : null};
+}
+
+const VACIA = {texto: '', bold: null};
+
+function segmentosDePar(lineaAcordes, letra) {
+  const acordes = [...lineaAcordes.texto.matchAll(/\S+/g)].map((m) => [m.index, m[0]]);
+  if (!acordes.length) {
+    return letra.texto ? [{acorde: null, texto: letra.texto, bold: letra.bold}] : [];
+  }
+
+  const segmentos = [];
+  // Con letra debajo la sangria sale de la propia letra. Sin letra (intros,
+  // puentes) hay que sacarla de la linea de acordes: si no, esa fila se
+  // desploma contra el margen mientras el resto del bloque queda indentado.
+  const origen = letra.texto ? letra : lineaAcordes;
+  const cabeza = corta(origen, 0, acordes[0][0]);
+  if (cabeza.texto) segmentos.push({acorde: null, texto: cabeza.texto, bold: cabeza.bold});
+
+  for (let i = 0; i < acordes.length; i++) {
+    const hasta = i + 1 < acordes.length ? acordes[i + 1][0] : letra.texto.length;
+    const t = corta(letra, acordes[i][0], hasta);
+    segmentos.push({acorde: acordes[i][1], texto: t.texto, bold: t.bold});
+  }
+  return segmentos;
+}
+
+// "Cuando [C]yo te [G]vi"
+function segmentosEnLinea(l) {
+  const segmentos = [];
+  let pos = 0, pendiente = null;
+  for (const m of l.texto.matchAll(CORCHETES_RE())) {
+    const t = corta(l, pos, m.index);
+    if (t.texto || pendiente !== null) segmentos.push({acorde: pendiente, texto: t.texto, bold: t.bold});
+    pendiente = m[1].trim();
+    pos = m.index + m[0].length;
+  }
+  const resto = corta(l, pos, l.texto.length);
+  if (pendiente !== null || resto.texto) {
+    segmentos.push({acorde: pendiente, texto: resto.texto, bold: resto.bold});
+  }
+  return segmentos;
+}
+
+function tieneAcordesEnLinea(linea) {
+  const enc = [...linea.matchAll(CORCHETES_RE())].map((m) => m[1].trim());
+  return enc.length > 0 && enc.every(esAcorde);
+}
+
+// Word y muchos PDF traen la cancion entera empujada a la derecha (sangria de
+// parrafo, tabuladores). Se quita el hueco que TODAS las lineas tienen en
+// comun: la sangria relativa entre ellas -- que es la que coloca cada acorde
+// sobre su silaba -- no se toca.
+function quitarSangriaComun(lineas) {
+  const sangria = (l) => l.length - l.trimStart().length;
+  const medidas = lineas.filter((l) => l.trim()).map(sangria);
+  if (!medidas.length) return lineas;
+
+  // Se busca la sangria DOMINANTE, no la minima. Hay documentos donde unas
+  // lineas llevan el margen (16 tabuladores = 64 columnas) y otras no: con el
+  // minimo, una sola linea sin margen lo deja todo como estaba y la cancion
+  // queda desparramada, unas lineas pegadas al margen y otras 64 columnas a
+  // la derecha. Cuando TODAS comparten el margen, la dominante es la minima
+  // y el resultado es el mismo de antes.
+  const cuenta = new Map();
+  for (const m of medidas) cuenta.set(m, (cuenta.get(m) || 0) + 1);
+  let dominante = 0, veces = 0;
+  for (const [m, n] of cuenta) {
+    if (n > veces || (n === veces && m < dominante)) { dominante = m; veces = n; }
+  }
+  if (!dominante) return lineas;
+
+  // A las lineas que nunca llevaron ese margen no se les quita nada: su
+  // sangria es relativa de verdad y colocaria mal los acordes.
+  return lineas.map((l) => (sangria(l) >= dominante ? l.slice(dominante) : l));
+}
+
+function parsear(texto) {
+  const crudas = quitarSangriaComun(
+    (texto || '').split(/\r?\n/).map((l) => expandirTabs(l, 4).replace(/\s+$/, ''))
+  );
+  // Cada linea pasa a {texto, bold}: el texto ya SIN las marcas ** **, que es
+  // sobre el que se miden columnas y se clasifica.
+  const lineas = crudas.map(extraerNegritas);
+
+  const secciones = [];
+  let actualSec = {nombre: '', lineas: []};
+
+  const cerrar = (sec) => {
+    while (sec.lineas.length && !sec.lineas[sec.lineas.length - 1].segmentos.length) sec.lineas.pop();
+    if (sec.nombre || sec.lineas.length) secciones.push(sec);
+  };
+
+  let i = 0;
+  while (i < lineas.length) {
+    const linea = lineas[i].texto;
+
+    if (!linea.trim()) {
+      const ult = actualSec.lineas[actualSec.lineas.length - 1];
+      if (ult && ult.segmentos.length) actualSec.lineas.push({segmentos: []});
+      i++;
+      continue;
+    }
+
+    const limpia = linea.trim();
+
+    // "[Intro]" o "[Intro]  C  G  Am"
+    if (limpia.startsWith('[')) {
+      const m = /^\[([^\[\]]+)\]/.exec(limpia);
+      if (m && !esAcorde(m[1].trim())) {
+        cerrar(actualSec);
+        actualSec = {nombre: m[1].trim(), lineas: []};
+        const resto = limpia.slice(m[0].length);
+        if (resto.trim()) {
+          actualSec.lineas.push({segmentos: segmentosDePar({texto: resto, bold: null}, VACIA)});
+        }
+        i++;
+        continue;
+      }
+    }
+
+    const nombre = nombreDeSeccion(linea);
+    if (nombre !== null) {
+      cerrar(actualSec);
+      actualSec = {nombre, lineas: []};
+      i++;
+      continue;
+    }
+
+    const etiqueta = ETIQUETA_RE.exec(linea);
+    if (etiqueta && etiqueta[2].length <= ETIQUETA_MAX) {
+      cerrar(actualSec);
+      actualSec = {nombre: etiqueta[2].trim(), lineas: []};
+
+      // El resto se vuelve a procesar como linea normal. Se rellena hasta su
+      // columna original SOLO si debajo hay letra con la que emparejar los
+      // acordes: sin letra ese hueco es la sangria de una etiqueta que ya se
+      // dibuja como encabezado, y quedaria como una indentacion sin sentido.
+      const sig = i + 1 < lineas.length ? lineas[i + 1].texto : '';
+      const empareja = !!(sig.trim()
+        && nombreDeSeccion(sig) === null
+        && !esLineaDeAcordes(sig)
+        && !tieneAcordesEnLinea(sig));
+      const col = etiqueta[0].length - etiqueta[3].length;   // donde empieza el resto
+      const relleno = empareja ? ' '.repeat(Math.max(0, col)) : '';
+      lineas[i] = corta(lineas[i], linea.length - etiqueta[3].length, linea.length);
+      lineas[i] = {
+        texto: relleno + lineas[i].texto,
+        bold: lineas[i].bold ? new Array(relleno.length).fill(false).concat(lineas[i].bold) : null,
+      };
+      continue;   // sin avanzar i: la misma linea, ya sin la etiqueta
+    }
+
+    if (tieneAcordesEnLinea(linea)) {
+      actualSec.lineas.push({segmentos: segmentosEnLinea(lineas[i])});
+      i++;
+      continue;
+    }
+
+    if (esLineaDeAcordes(linea)) {
+      const sig = i + 1 < lineas.length ? lineas[i + 1] : VACIA;
+      const esLetra = !!(sig.texto.trim()
+        && nombreDeSeccion(sig.texto) === null
+        && !esLineaDeAcordes(sig.texto)
+        && !tieneAcordesEnLinea(sig.texto));
+      if (esLetra) {
+        actualSec.lineas.push({segmentos: segmentosDePar(lineas[i], sig)});
+        i += 2;
+      } else {
+        actualSec.lineas.push({segmentos: segmentosDePar(lineas[i], VACIA)});
+        i++;
+      }
+      continue;
+    }
+
+    actualSec.lineas.push({
+      segmentos: [{acorde: null, texto: lineas[i].texto, bold: lineas[i].bold}],
+    });
+    i++;
+  }
+
+  cerrar(actualSec);
+  return {secciones};
+}
+
+function acordesUsados(texto) {
+  const vistos = [];
+  for (const s of parsear(texto).secciones) {
+    for (const ln of s.lineas) {
+      for (const seg of ln.segmentos) {
+        // esAcorde descarta las marcas de repeticion ("x2", "|:").
+        if (seg.acorde && esAcorde(seg.acorde) && !vistos.includes(seg.acorde)) vistos.push(seg.acorde);
+      }
+    }
+  }
+  return vistos;
+}
+
+function soloLetra(texto) {
+  const partes = [];
+  for (const s of parsear(texto).secciones) {
+    for (const ln of s.lineas) partes.push(ln.segmentos.map((g) => g.texto).join(''));
+  }
+  return partes.join('\n');
+}
+
+const normalizar = (t) => (t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+// ======================================================================
+//  TRANSPOSICION
+//  Es una preferencia de LECTURA, como el tamano de letra: no toca la
+//  cancion guardada. Se recuerda por cancion en el navegador.
+// ======================================================================
+const AMERICANO_S = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const AMERICANO_B = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+const LATINO_S    = ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
+const LATINO_B    = ['Do','Reb','Re','Mib','Mi','Fa','Solb','Sol','Lab','La','Sib','Si'];
+const GRADO = {C:0, D:2, E:4, F:5, G:7, A:9, B:11, Do:0, Re:2, Mi:4, Fa:5, Sol:7, La:9, Si:11};
+
+// "Sol" va antes que "Si" para que "Sol7" no se lea como Si + "ol7"; las
+// raices latinas van antes que [A-G] porque son mas largas y deben ganar.
+// La cola esta acotada a sufijos de acorde igual que ACORDE_RE: sin eso una
+// marca como "Bis" se leeria como el acorde Si y se transportaria.
+const RE_NOTA = new RegExp('^(Sol|Do|Re|Mi|Fa|La|Si|[A-G])([#b♯♭]?)((?:' + _ATOMO + ')*)$');
+
+// Tonos mayores que por convencion se escriben con bemoles.
+const CON_BEMOLES = new Set([1, 3, 5, 8, 10]);
+
+function transponerNota(txt, n, bemoles) {
+  const m = RE_NOTA.exec(txt);
+  if (!m || !(m[1] in GRADO)) return txt;
+  const latino = m[1].length > 1;
+  const desvio = (m[2] === '#' || m[2] === '♯') ? 1 : (m[2] === 'b' || m[2] === '♭') ? -1 : 0;
+  const grado = (((GRADO[m[1]] + desvio + n) % 12) + 12) % 12;
+  const tabla = latino ? (bemoles ? LATINO_B : LATINO_S) : (bemoles ? AMERICANO_B : AMERICANO_S);
+  return tabla[grado] + m[3];
+}
+
+// Un acorde puede llevar bajo: "C/G", "Lam7/Sol".
+function transponer(acorde, n, bemoles) {
+  if (!acorde || !n) return acorde;
+  return acorde.split('/').map((p) => transponerNota(p, n, bemoles)).join('/');
+}
+
+function tonoBase() {
+  if (!actual) return '';
+  const escrito = (actual.tono || '').trim();
+  if (escrito && RE_NOTA.test(escrito)) return escrito;
+  return (actual.acordes && actual.acordes[0]) || '';
+}
+
+function usarBemoles() {
+  const m = RE_NOTA.exec(tonoBase());
+  if (!m || !(m[1] in GRADO)) return false;
+  const desvio = m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0;
+  let grado = (((GRADO[m[1]] + desvio + semis) % 12) + 12) % 12;
+  // Un tono menor se escribe con la armadura de su relativo mayor, tres
+  // semitonos por encima: Do menor lleva Sib y Mib, no La# y Re#.
+  if (/^m(?!aj)/.test(m[3] || '')) grado = (grado + 3) % 12;
+  return CON_BEMOLES.has(grado);
+}
+
+function pintarTono() {
+  const base = tonoBase();
+  const boton = $('#btn-tono');
+  boton.textContent = base ? transponer(base, semis, usarBemoles()) : '—';
+  boton.classList.toggle('movido', semis !== 0);
+  boton.title = semis === 0
+    ? 'Tono original'
+    : 'Tono original: ' + base + ' (' + (semis > 0 ? '+' : '') + semis + ' semitonos). Pulsa para volver.';
+}
+
+function cambiarTono(n) {
+  if (!actual) return;
+  semis = n === 0 ? 0 : (((semis + n) % 12) + 12) % 12;
+  if (semis > 6) semis -= 12;   // se prefiere -2 antes que +10: es el mismo tono
+  guardar1('tono:' + actual.id, semis);
+  pintarTono();
+  pintarAcordes();
+  pintarCifrado(actual.estructura, $('#cifrado'), semis);
+}
+
+// ======================================================================
+//  PINTAR EL CIFRADO
+//  La usan la vista de la cancion y la vista previa del editor. Una sola
+//  forma de dibujar una cancion en toda la app.
+// ======================================================================
+// Pinta un texto respetando su negrita (un booleano por caracter).
+function pintarTexto(destino, texto, bold) {
+  if (!bold) { destino.appendChild(document.createTextNode(texto)); return; }
+  let i = 0;
+  while (i < texto.length) {
+    let j = i;
+    while (j < texto.length && bold[j] === bold[i]) j++;
+    const parte = texto.slice(i, j);
+    if (bold[i]) {
+      const b = document.createElement('b');
+      b.textContent = parte;
+      destino.appendChild(b);
+    } else {
+      destino.appendChild(document.createTextNode(parte));
+    }
+    i = j;
+  }
+}
+
+function pintarCifrado(estructura, destino, n) {
+  const bemoles = n ? usarBemoles() : false;
+  destino.textContent = '';
+
+  for (const seccion of (estructura && estructura.secciones) || []) {
+    const bloque = document.createElement('div');
+    bloque.className = 'seccion';
+
+    if (seccion.nombre) {
+      const h = document.createElement('h3');
+      h.textContent = seccion.nombre;
+      bloque.appendChild(h);
+    }
+
+    for (const linea of seccion.lineas) {
+      const fila = document.createElement('div');
+      const segmentos = linea.segmentos || [];
+
+      if (!segmentos.length) {
+        fila.className = 'linea hueco';
+        bloque.appendChild(fila);
+        continue;
+      }
+
+      // Sin acordes: texto corrido, que fluye y se ajusta al ancho.
+      if (!segmentos.some((s) => s.acorde)) {
+        fila.className = 'linea letra';
+        for (const seg of segmentos) pintarTexto(fila, seg.texto, seg.bold);
+        bloque.appendChild(fila);
+        continue;
+      }
+
+      // Intros y puentes: acordes sin letra debajo, se pintan mas sueltos.
+      const soloAcordes = segmentos.every((s) => !(s.texto || '').trim());
+      fila.className = soloAcordes ? 'linea solo-acordes' : 'linea';
+
+      for (const seg of segmentos) {
+        const acorde = transponer(seg.acorde, n, bemoles);
+        // Se trocea palabra a palabra para que la linea pueda partirse en
+        // pantallas estrechas sin romper la alineacion acorde/silaba.
+        const trozos = (seg.texto || '').match(/\S+\s*|\s+/g) || [''];
+        let off = 0;
+        trozos.forEach((trozo, i) => {
+          const bold = seg.bold ? seg.bold.slice(off, off + trozo.length) : null;
+          off += trozo.length;
+
+          const caja = document.createElement('span');
+          caja.className = 'seg';
+          const ac = document.createElement('span');
+          ac.className = 'ac';
+          ac.textContent = i === 0 && acorde ? acorde + ' ' : '';
+          const tx = document.createElement('span');
+          tx.className = 'tx';
+          pintarTexto(tx, trozo, bold && bold.some(Boolean) ? bold : null);
+          caja.append(ac, tx);
+          fila.appendChild(caja);
+        });
+      }
+      bloque.appendChild(fila);
+    }
+    destino.appendChild(bloque);
+  }
+}
+
+function pintarAcordes() {
+  const bemoles = usarBemoles();
+  const partes = (actual.acordes || []).map((a) => transponer(a, semis, bemoles));
+  const capo = actual.capo ? 'Capo ' + actual.capo : '';
+  $('#meta').textContent = [capo, partes.join('  ')].filter(Boolean).join('  ·  ');
+}
+
+// ======================================================================
+//  ALMACEN
+//  Las canciones viven en la base del artifact. El repertorio entero se
+//  mantiene en memoria y se sincroniza solo: buscar y filtrar no tocan la
+//  red, asi que responden al instante aunque la conexion vaya mal.
+// ======================================================================
+// ======================================================================
+//  ALMACEN
+//  Tres sitios posibles, y se eligen en este orden:
+//
+//    1. La base del artifact, cuando la pagina corre dentro de claude.ai.
+//    2. Firebase, cuando el sitio trae un firebase.json al lado. Es lo que da
+//       sincronizacion en tiempo real entre dispositivos alojando la app uno
+//       mismo.
+//    3. El propio navegador, para un archivo suelto o un sitio sin configurar.
+//
+//  Los tres exponen la MISMA forma -- collection().onSnapshot(),
+//  doc().set/update/delete() -- que es la de Firestore. Por eso el resto de la
+//  app no sabe cual esta usando ni tiene un solo "if" que lo consulte.
+// ======================================================================
+function sinAlmacen(texto, accion) {
+  app.classList.add('sin-db');
+  const caja = $('#sin-db');
+  caja.textContent = texto;
+  if (accion) {
+    const b = document.createElement('button');
+    b.className = 'btn';
+    b.id = 'btn-entrar';
+    b.textContent = accion.texto;
+    b.onclick = accion.al;
+    caja.append(' ', b);
+  }
+}
+
+const conAlmacen = () => app.classList.remove('sin-db');
+
+// Si el guardado falla no se pierde en silencio: se avisa arriba del todo.
+function fallo(e) {
+  sinAlmacen(e && e.code === 'quota_exceeded'
+    ? 'No cabe mas: borra alguna cancion para poder guardar.'
+    : 'No se pudo guardar (' + ((e && (e.code || e.message)) || 'error') + ').');
+}
+
+// Hay navegadores (ventana privada, cookies bloqueadas, un archivo abierto
+// desde un origen opaco) donde localStorage existe pero lanza al usarlo. Se
+// comprueba de verdad antes de fiarse de el.
+function guardaEnNavegador() {
+  try {
+    localStorage.setItem('cancionero:prueba', '1');
+    localStorage.removeItem('cancionero:prueba');
+    return true;
+  } catch (e) { return false; }
+}
+
+// --- 3. El propio navegador --------------------------------------------
+function almacenLocal() {
+  const clave = (col) => 'cancionero:' + col;
+  const oyentes = {};
+
+  const leer = (col) => {
+    try { return JSON.parse(localStorage.getItem(clave(col)) || '{}'); }
+    catch (e) { return {}; }
+  };
+  const avisar = (col) => {
+    const datos = leer(col);
+    const docs = Object.keys(datos).map((id) => ({id, data: () => datos[id]}));
+    for (const fn of oyentes[col] || []) fn({docs});
+  };
+  const escribir = (col, datos) => {
+    try {
+      localStorage.setItem(clave(col), JSON.stringify(datos));
+    } catch (e) {
+      // Lleno y bloqueado no son lo mismo, y el remedio tampoco: uno se
+      // arregla borrando canciones y el otro no se arregla desde aqui.
+      const lleno = e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014);
+      throw lleno
+        ? {code: 'quota_exceeded', message: 'No cabe mas en este navegador.'}
+        : {code: 'sin_almacenamiento', message: 'Este navegador no deja guardar datos.'};
+    }
+    avisar(col);
+  };
+
+  return {
+    local: true,
+    collection: (col) => ({
+      onSnapshot(next) {
+        (oyentes[col] = oyentes[col] || []).push(next);
+        setTimeout(() => avisar(col), 0);
+        return () => { oyentes[col] = (oyentes[col] || []).filter((f) => f !== next); };
+      },
+    }),
+    doc: (ruta) => {
+      const corte = ruta.indexOf('/');
+      const col = ruta.slice(0, corte), id = ruta.slice(corte + 1);
+      return {
+        async set(cuerpo) { const d = leer(col); d[id] = cuerpo; escribir(col, d); },
+        async update(campos) {
+          const d = leer(col);
+          if (d[id]) { Object.assign(d[id], campos); escribir(col, d); }
+        },
+        async delete() { const d = leer(col); delete d[id]; escribir(col, d); },
+      };
+    },
+  };
+}
+
+// --- 2. Firebase --------------------------------------------------------
+const FIREBASE_VERSION = '10.14.1';
+
+async function leerConfigFirebase() {
+  try {
+    const r = await fetch('firebase.json', {cache: 'no-cache'});
+    if (!r.ok) return null;
+    const cfg = await r.json();
+    return (cfg && cfg.apiKey && cfg.projectId) ? cfg : null;
+  } catch (e) {
+    return null;   // no hay archivo, o estamos en claude.ai: es lo normal
+  }
+}
+
+function cargarScript(src) {
+  return new Promise((listo, falla) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = listo;
+    s.onerror = () => falla(new Error('No se pudo cargar ' + src));
+    document.head.appendChild(s);
+  });
+}
+
+// Cada usuario escribe bajo usuarios/<su uid>. Las reglas de Firestore atan
+// ese uid al de la sesion, asi que el repertorio es privado aunque la
+// configuracion de Firebase viaje a la vista (que es lo normal: no es un
+// secreto, la seguridad esta en las reglas).
+function almacenFirebase(uid) {
+  const raiz = () => firebase.firestore().collection('usuarios').doc(uid);
+  return {
+    nube: true,
+    collection: (col) => ({
+      onSnapshot(next, error) {
+        return raiz().collection(col).onSnapshot(
+          (snap) => next({docs: snap.docs.map((d) => ({id: d.id, data: () => d.data()}))}),
+          error
+        );
+      },
+    }),
+    doc: (ruta) => {
+      const corte = ruta.indexOf('/');
+      const ref = raiz().collection(ruta.slice(0, corte)).doc(ruta.slice(corte + 1));
+      return {
+        set: (cuerpo) => ref.set(cuerpo),
+        update: (campos) => ref.update(campos),
+        delete: () => ref.delete(),
+      };
+    },
+  };
+}
+
+async function iniciarFirebase(cfg) {
+  const base = 'https://www.gstatic.com/firebasejs/' + FIREBASE_VERSION + '/';
+  try {
+    await cargarScript(base + 'firebase-app-compat.js');
+    await cargarScript(base + 'firebase-auth-compat.js');
+    await cargarScript(base + 'firebase-firestore-compat.js');
+  } catch (e) {
+    sinAlmacen('No se pudo cargar Firebase. Comprueba la conexion y recarga.');
+    pintarLista();
+    return;
+  }
+
+  firebase.initializeApp(cfg);
+
+  const entrar = async () => {
+    try {
+      await firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider());
+    } catch (e) {
+      // En muchos moviles la ventana emergente se bloquea; el redirect no.
+      if (e && /popup/i.test(e.code || '')) {
+        firebase.auth().signInWithRedirect(new firebase.auth.GoogleAuthProvider());
+        return;
+      }
+      sinAlmacen('No se pudo entrar (' + ((e && e.code) || 'error') + ').',
+        {texto: 'Reintentar', al: entrar});
+    }
+  };
+  window.__entrarConGoogle = entrar;
+  window.__salirDeGoogle = () => firebase.auth().signOut().then(() => location.reload());
+
+  firebase.auth().onAuthStateChanged((usuario) => {
+    if (!usuario) {
+      canciones = []; generos = [];
+      pintarLista();
+      sinAlmacen('Entra con tu cuenta de Google para tener el mismo repertorio en todos '
+        + 'tus dispositivos, al instante.', {texto: 'Entrar con Google', al: entrar});
+      return;
+    }
+    conAlmacen();
+    db = almacenFirebase(usuario.uid);
+    suscribir();
+  });
+}
+
+// --- Suscripcion (igual para los tres almacenes) ------------------------
+function suscribir() {
+  db.collection('canciones').onSnapshot((snap) => {
+    canciones = snap.docs.map((d) => Object.assign({id: d.id}, d.data()));
+    canciones.sort((a, b) => (a.titulo || '').localeCompare(b.titulo || '', 'es', {sensitivity: 'base'}));
+    if (actual) {
+      const viva = canciones.find((c) => c.id === actual.id);
+      if (viva) refrescarAbierta(viva); else cerrarCancion();
+    }
+    pintarLista();
+  }, (e) => sinAlmacen('Se perdio el acceso al almacenamiento (' + e.code + '). Recarga la pagina.'));
+
+  db.collection('generos').onSnapshot((snap) => {
+    generos = snap.docs.map((d) => Object.assign({id: d.id}, d.data()));
+    generos.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', {sensitivity: 'base'}));
+    pintarLista();
+    if ($('#grupos').classList.contains('abierto')) pintarGrupos();
+  }, () => {});
+}
+
+async function iniciarAlmacen() {
+  // 1. Dentro de claude.ai. Una copia de la pagina fuera del visor no tiene
+  // window.claude siquiera: sin esta guarda la espera no termina nunca y la
+  // lista se queda en "Cargando" para siempre.
+  try {
+    db = (window.claude && window.claude.use) ? await window.claude.use('db') : null;
+  } catch (e) { db = null; }
+  if (db) { suscribir(); setTimeout(sembrarSiHaceFalta, 400); return; }
+
+  // 2. Firebase, si el sitio lo trae configurado.
+  const cfg = await leerConfigFirebase();
+  if (cfg) { await iniciarFirebase(cfg); return; }
+
+  // 3. Este navegador.
+  if (!guardaEnNavegador()) {
+    sinAlmacen('Los cambios no se guardaran: este navegador no permite guardar datos '
+      + '(ventana privada o cookies bloqueadas). Se puede leer, pero no anadir.');
+    pintarLista();
+    return;
+  }
+  db = almacenLocal();
+  sinAlmacen('Guardando en este navegador. Las canciones que anadas aqui se quedan en '
+    + 'este dispositivo y no se ven desde otro.');
+  suscribir();
+  setTimeout(sembrarSiHaceFalta, 400);
+}
+
+function limpiar(datos) {
+  const capo = entre(parseInt(datos.capo, 10), 0, 12, 0);
+  const columnas = entre(parseInt(datos.columnas, 10), 1, MAX_COLUMNAS, 1);
+  const limpio = {
+    titulo: (datos.titulo || '').trim() || 'Sin titulo',
+    artista: (datos.artista || '').trim(),
+    tono: (datos.tono || '').trim(),
+    etiquetas: (datos.etiquetas || '').trim(),
+    contenido: datos.contenido || '',
+    genero_id: datos.genero_id || null,
+    // Copia fiel del documento para la vista Original. No se deriva del
+    // contenido ni se usa para parsear: es el documento, no una version.
+    original: Array.isArray(datos.original) ? datos.original : null,
+    capo, columnas,
+  };
+  // Indice de busqueda derivado: titulo + artista + etiquetas + letra sin
+  // acordes, en minusculas y sin tildes. Se regenera en cada escritura.
+  limpio.busqueda = normalizar([limpio.titulo, limpio.artista, limpio.etiquetas,
+    soloLetra(limpio.contenido)].join(' \n'));
+  return limpio;
+}
+
+async function guardarCancion(id, datos) {
+  const cuerpo = limpiar(datos);
+  cuerpo.editada = new Date().toISOString();
+  if (!id) {
+    cuerpo.creada = cuerpo.editada;
+    id = nuevoId();
+  }
+  await db.doc('canciones/' + id).set(cuerpo);
+  return Object.assign({id}, cuerpo);
+}
+
+// ======================================================================
+//  LISTA Y GRUPOS
+// ======================================================================
+const estaPlegado = (clave) => leer1('plegado:' + clave, '') === '1';
+
+function alternarPlegado(clave) {
+  guardar1('plegado:' + clave, estaPlegado(clave) ? '0' : '1');
+  pintarLista();
+}
+
+function filtradas() {
+  const palabras = normalizar($('#buscar').value.trim()).split(/\s+/).filter(Boolean);
+  if (!palabras.length) return canciones;
+  return canciones.filter((c) => palabras.every((p) => (c.busqueda || '').includes(p)));
+}
+
+function itemDeCancion(c) {
+  const item = document.createElement('div');
+  item.className = 'item' + (actual && actual.id === c.id ? ' activa' : '');
+  const t = document.createElement('b');
+  t.textContent = c.titulo;
+  item.appendChild(t);
+  if (c.artista) {
+    const a = document.createElement('span');
+    a.className = 'art';
+    a.textContent = c.artista;
+    item.appendChild(a);
+  }
+  item.title = [c.titulo, c.artista].filter(Boolean).join(' · ');
+  item.onclick = () => abrir(c.id);
+  return item;
+}
+
+function pintarLista() {
+  const lista = $('#lista');
+  lista.textContent = '';
+  const q = $('#buscar').value.trim();
+  const halladas = filtradas();
+
+  if (!halladas.length) {
+    const vacio = document.createElement('div');
+    vacio.id = 'vacio';
+    vacio.textContent = canciones.length
+      ? 'Ninguna cancion coincide con "' + q + '".'
+      : 'Todavia no hay canciones. Pulsa "+ Nueva" para pegar una, o importa un Word.';
+    lista.appendChild(vacio);
+    return;
+  }
+
+  // Sin generos creados no hay nada que agrupar: lista plana, sin un unico
+  // encabezado "Sin genero" estorbando. Los grupos aparecen al usarlos.
+  if (!generos.length) {
+    for (const c of halladas) lista.appendChild(itemDeCancion(c));
+    return;
+  }
+
+  const grupos = generos.map((g) => ({clave: g.id, nombre: g.nombre, canciones: []}));
+  const porId = new Map(grupos.map((g) => [g.clave, g]));
+  const sueltas = {clave: 'sin', nombre: 'Sin genero', canciones: []};
+  for (const c of halladas) (porId.get(c.genero_id) || sueltas).canciones.push(c);
+  grupos.push(sueltas);
+
+  // Al buscar se despliega todo: dejar un resultado escondido detras de un
+  // grupo plegado haria parecer que la busqueda no encuentra nada.
+  const buscando = q !== '';
+
+  for (const g of grupos) {
+    // Un genero recien creado se ve aunque este vacio: si no, crearlo
+    // pareceria no hacer nada.
+    if (!g.canciones.length && (buscando || g.clave === 'sin')) continue;
+    const plegado = !buscando && estaPlegado(g.clave);
+
+    const h = document.createElement('h4');
+    if (plegado) h.className = 'plegado';
+    const flecha = document.createElement('span');
+    flecha.className = 'flecha';
+    flecha.textContent = '▼';
+    const nombre = document.createElement('span');
+    nombre.textContent = g.nombre;
+    const cuenta = document.createElement('span');
+    cuenta.className = 'cuenta';
+    cuenta.textContent = g.canciones.length;
+    h.append(flecha, nombre, cuenta);
+    h.onclick = () => alternarPlegado(g.clave);
+    lista.appendChild(h);
+
+    if (plegado) continue;
+    for (const c of g.canciones) lista.appendChild(itemDeCancion(c));
+  }
+}
+
+// --- Gestor de generos ---
+function abrirGrupos() {
+  $('#grupos').classList.add('abierto');
+  $('#f-nuevo-grupo').value = '';
+  avisoGrupos('');
+  pintarGrupos();
+  $('#f-nuevo-grupo').focus();
+}
+const cerrarGrupos = () => $('#grupos').classList.remove('abierto');
+const avisoGrupos = (t) => { $('#estado-grupos').textContent = t; };
+
+function cuentaDe(id) {
+  return canciones.filter((c) => c.genero_id === id).length;
+}
+
+function pintarGrupos() {
+  const caja = $('#lista-grupos');
+  caja.textContent = '';
+
+  if (!generos.length) {
+    const p = document.createElement('div');
+    p.className = 'fila-grupo';
+    p.style.color = 'var(--suave)';
+    p.textContent = 'Todavia no hay generos. Crea el primero aqui abajo.';
+    caja.appendChild(p);
+    return;
+  }
+
+  for (const g of generos) {
+    const total = cuentaDe(g.id);
+    const fila = document.createElement('div');
+    fila.className = 'fila-grupo';
+
+    const campo = document.createElement('input');
+    campo.value = g.nombre;
+    campo.setAttribute('aria-label', 'Nombre del genero');
+    campo.onchange = () => renombrarGrupo(g, campo);
+
+    const cuenta = document.createElement('span');
+    cuenta.className = 'cuenta';
+    cuenta.textContent = total === 1 ? '1 cancion' : total + ' canciones';
+
+    const borrar = document.createElement('button');
+    borrar.className = 'btn peligro';
+    borrar.textContent = 'Borrar';
+    borrar.onclick = () => borrarGrupo(g, total);
+
+    fila.append(campo, cuenta, borrar);
+    caja.appendChild(fila);
+  }
+}
+
+function nombreLibre(nombre, exceptoId) {
+  const n = normalizar(nombre);
+  return !generos.some((g) => g.id !== exceptoId && normalizar(g.nombre) === n);
+}
+
+async function crearGrupo() {
+  const nombre = $('#f-nuevo-grupo').value.trim();
+  if (!nombre) return;
+  if (!db) { avisoGrupos('Sin almacenamiento no se pueden crear generos.'); return; }
+  if (!nombreLibre(nombre, null)) { avisoGrupos('Ya existe un genero con ese nombre.'); return; }
+  try {
+    await db.doc('generos/' + nuevoId()).set({nombre});
+    $('#f-nuevo-grupo').value = '';
+    avisoGrupos('');
+  } catch (e) { avisoGrupos('No se pudo crear el genero (' + e.code + ').'); }
+}
+
+async function renombrarGrupo(g, campo) {
+  const nombre = campo.value.trim();
+  if (!nombre || nombre === g.nombre) { campo.value = g.nombre; return; }
+  if (!nombreLibre(nombre, g.id)) {
+    avisoGrupos('Ya existe un genero con ese nombre.');
+    campo.value = g.nombre;
+    return;
+  }
+  try {
+    await db.doc('generos/' + g.id).update({nombre});
+    avisoGrupos('');
+  } catch (e) { avisoGrupos('No se pudo renombrar (' + e.code + ').'); campo.value = g.nombre; }
+}
+
+// Borra el grupo, no las canciones: las que estaban dentro se quedan sin
+// genero. Perder canciones por borrar una carpeta seria inaceptable.
+async function borrarGrupo(g, total) {
+  const texto = total
+    ? 'Borrar el genero "' + g.nombre + '"?\n\nSus ' + total +
+      ' canciones NO se borran: se quedan sin genero.'
+    : 'Borrar el genero "' + g.nombre + '"?';
+  if (!confirm(texto)) return;
+  try {
+    for (const c of canciones.filter((c) => c.genero_id === g.id)) {
+      await db.doc('canciones/' + c.id).update({genero_id: null});
+    }
+    await db.doc('generos/' + g.id).delete();
+    avisoGrupos('');
+  } catch (e) { avisoGrupos('No se pudo borrar (' + e.code + ').'); }
+}
+
+// ======================================================================
+//  ABRIR Y LEER UNA CANCION
+// ======================================================================
+function refrescarAbierta(datos) {
+  actual = Object.assign({}, datos);
+  actual.estructura = parsear(actual.contenido);
+  actual.acordes = acordesUsados(actual.contenido);
+  $('#titulo').textContent = actual.titulo;
+  $('#artista').textContent = actual.artista || '';
+  pintarTono();
+  pintarAcordes();
+  aplicarColumnas();
+  pintarCifrado(actual.estructura, $('#cifrado'), semis);
+  pintarOriginal();
+}
+
+// --- Vista ORIGINAL ----------------------------------------------------
+// Reproduce el documento de Word tal como estaba: mismas posiciones, mismas
+// negritas y mismos colores. No pasa por el parser, no transpone y no
+// reordena nada. Lo unico que se descuenta es el margen vacio que comparten
+// todos los renglones, porque si no la cancion aparece 64 columnas a la
+// derecha y no hay forma de leerla.
+function caracteresDeLinea(runs) {
+  const chars = [];
+  for (const r of runs || []) {
+    for (const ch of r.t) {
+      if (ch === '\t') {
+        const faltan = 4 - (chars.length % 4);
+        for (let i = 0; i < faltan; i++) chars.push({ch: ' ', b: 0, c: null});
+      } else {
+        chars.push({ch, b: r.b || 0, c: r.c || null});
+      }
+    }
+  }
+  while (chars.length && /\s/.test(chars[chars.length - 1].ch)) chars.pop();
+  return chars;
+}
+
+function pintarOriginal() {
+  const caja = $('#fuente');
+  caja.textContent = '';
+
+  // Canciones importadas antes de que se guardara el formato: queda el texto.
+  if (!actual.original || !actual.original.length) {
+    const aviso = document.createElement('div');
+    aviso.className = 'orig-aviso';
+    aviso.textContent = 'Esta cancion se importo antes de que se guardara el formato del '
+      + 'documento. Se ve el texto, sin colores ni negritas; vuelve a importarla para tenerlos.';
+    const cuerpo = document.createElement('div');
+    cuerpo.textContent = quitarSangriaComun(
+      actual.contenido.split(/\r?\n/).map((l) => expandirTabs(l, 4))
+    ).join('\n');
+    caja.append(aviso, cuerpo);
+    return;
+  }
+
+  // Formato antiguo: array de renglones. Nuevo: cada renglon en {r: [...]}.
+  const lineas = actual.original
+    .map((x) => (Array.isArray(x) ? x : (x && x.r) || []))
+    .map(caracteresDeLinea);
+  const textos = lineas.map((cs) => cs.map((c) => c.ch).join(''));
+  const recortados = quitarSangriaComun(textos);
+  lineas.forEach((cs, i) => cs.splice(0, textos[i].length - recortados[i].length));
+
+  for (const cs of lineas) {
+    const fila = document.createElement('div');
+    fila.className = 'orig-linea';
+    let i = 0;
+    while (i < cs.length) {
+      let j = i;
+      while (j < cs.length && cs[j].b === cs[i].b && cs[j].c === cs[i].c) j++;
+      const trozo = document.createElement('span');
+      trozo.textContent = cs.slice(i, j).map((c) => c.ch).join('');
+      if (cs[i].b) trozo.style.fontWeight = '700';
+      // El color viene de la base, que es compartida: se vuelve a validar
+      // antes de meterlo en un style.
+      if (cs[i].c && /^#[0-9A-Fa-f]{6}$/.test(cs[i].c)) trozo.style.color = cs[i].c;
+      fila.appendChild(trozo);
+      i = j;
+    }
+    caja.appendChild(fila);
+  }
+}
+
+function alternarFuente() {
+  if (!actual) return;
+  $('#btn-fuente').classList.toggle('activo', app.classList.toggle('fuente'));
+}
+
+function salirDeFuente() {
+  app.classList.remove('fuente');
+  $('#btn-fuente').classList.remove('activo');
+}
+
+function abrir(id) {
+  const datos = canciones.find((c) => c.id === id);
+  if (!datos) return;
+  pararScroll();
+  salirDeFuente();
+  semis = entre(+leer1('tono:' + id, 0), -11, 11, 0);   // cada cancion recuerda su tono
+
+  $('#nada').hidden = true;
+  $('#barra').hidden = false;
+  refrescarAbierta(datos);
+  $('#vista').scrollTop = 0;
+  app.classList.add('viendo');
+  pintarLista();
+}
+
+function cerrarCancion() {
+  pararScroll();
+  salirDeFuente();
+  app.classList.remove('viendo', 'concentracion');
+  actual = null;
+  semis = 0;
+  $('#barra').hidden = true;
+  $('#nada').hidden = false;
+  $('#cifrado').textContent = '';
+  $('#cifrado').className = '';
+  $('#fuente').textContent = '';
+  pintarLista();
+}
+
+// --- Columnas ---
+// Vienen de como estaba maquetado el Word, asi que son un dato DE LA
+// CANCION (no una preferencia de lectura como el tono) y viajan en la base.
+function aplicarColumnas() {
+  const n = entre(parseInt(actual.columnas, 10), 1, MAX_COLUMNAS, 1);
+  $('#cifrado').className = 'cols-' + n;
+  $('#btn-columnas').textContent = n + ' col';
+}
+
+async function cambiarColumnas() {
+  if (!actual || !db) return;
+  actual.columnas = ((entre(parseInt(actual.columnas, 10), 1, MAX_COLUMNAS, 1)) % MAX_COLUMNAS) + 1;
+  aplicarColumnas();
+  try { await db.doc('canciones/' + actual.id).update({columnas: actual.columnas}); } catch (e) {}
+}
+
+// --- Autoscroll ---
+// Se acumulan fracciones de pixel: a velocidades bajas un scrollTop entero
+// por fotograma daria tirones en vez de un desplazamiento continuo.
+let rafId = null, ultimo = 0, sobrante = 0;
+
+function pasoScroll(t) {
+  const vista = $('#vista');
+  if (!ultimo) ultimo = t;
+  const dt = Math.min(t - ultimo, 100);
+  ultimo = t;
+
+  sobrante += (pref.vel * dt) / 1000;
+  const px = Math.floor(sobrante);
+  if (px > 0) {
+    sobrante -= px;
+    const antes = vista.scrollTop;
+    vista.scrollTop = antes + px;
+    if (vista.scrollTop === antes) { pararScroll(); return; }   // fin de la cancion
+  }
+  rafId = requestAnimationFrame(pasoScroll);
+}
+
+function alternarScroll() {
+  if (rafId) { pararScroll(); return; }
+  if (!actual) return;
+  ultimo = 0; sobrante = 0;
+  rafId = requestAnimationFrame(pasoScroll);
+  $('#btn-scroll').innerHTML = '&#10073;&#10073; Pausa';
+  $('#btn-scroll').classList.add('activo');
+}
+
+function pararScroll() {
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = null;
+  $('#btn-scroll').innerHTML = '&#9654; Autoscroll';
+  $('#btn-scroll').classList.remove('activo');
+}
+
+function ponerVelocidad(v) {
+  pref.vel = entre(v, VEL_MIN, VEL_MAX, 16);
+  $('#velocidad').value = pref.vel;
+  $('#vel-txt').textContent = pref.vel;
+  guardar1('vel', pref.vel);
+}
+
+function cambiarTam(delta) {
+  pref.tam = entre(pref.tam + delta, 12, 40, 18);
+  document.documentElement.style.setProperty('--tam', pref.tam + 'px');
+  guardar1('tam', pref.tam);
+}
+
+function alternarTema() {
+  const oscuro = document.documentElement.dataset.tema !== 'oscuro';
+  document.documentElement.dataset.tema = oscuro ? 'oscuro' : 'claro';
+  guardar1('tema', oscuro ? 'oscuro' : 'claro');
+}
+
+// ======================================================================
+//  IMPORTAR WORD
+//  Un .docx es un ZIP con XML dentro, asi que se lee entero en el
+//  navegador. No se interpreta ningun acorde aqui: solo se saca el texto
+//  respetando la sangria y el ORDEN, y de reconocer acordes ya se encarga
+//  el parser.
+// ======================================================================
+const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+const hijos = (nodo, nombre) => Array.from(nodo.children).filter((e) => e.localName === nombre);
+const attr = (el, nombre) => el.getAttributeNS(W, nombre) || el.getAttribute('w:' + nombre);
+
+// <w:b/> sin valor significa negrita; <w:b w:val="0"/> significa que NO.
+function esNegrita(run) {
+  const rPr = hijos(run, 'rPr')[0];
+  if (!rPr) return false;
+  const b = hijos(rPr, 'b')[0];
+  if (!b) return false;
+  const val = attr(b, 'val');
+  return !val || !['0', 'false', 'off'].includes(val);
+}
+
+// Color del texto en Word: <w:color w:val="C00000"/>. "auto" es el del tema.
+function colorDeRun(run) {
+  const rPr = hijos(run, 'rPr')[0];
+  if (!rPr) return null;
+  const c = hijos(rPr, 'color')[0];
+  if (!c) return null;
+  const val = attr(c, 'val');
+  if (!val || val.toLowerCase() === 'auto') return null;
+  return /^[0-9A-Fa-f]{6}$/.test(val) ? '#' + val : null;
+}
+
+// Trozos del parrafo con su formato: {t: texto, b: negrita, c: color}.
+function runsDeParrafo(p) {
+  const runs = [];
+  (function recorrer(nodo, negrita, color) {
+    for (const hijo of nodo.children) {
+      const n = hijo.localName;
+      if (n === 'pPr' || n === 'rPr') continue;
+      if (n === 'r') { recorrer(hijo, esNegrita(hijo), colorDeRun(hijo)); continue; }
+      // El espacio duro de Word descuadraria el conteo de columnas con el que
+      // se alinea cada acorde sobre su silaba.
+      if (n === 't') runs.push({t: hijo.textContent.replace(/ /g, ' '), b: negrita, c: color});
+      else if (n === 'tab') runs.push({t: '\t', b: false, c: null});
+      else if (n === 'br' || n === 'cr') runs.push({t: '\n', b: false, c: null});
+      else recorrer(hijo, negrita, color);
+    }
+  })(p, false, null);
+  return runs;
+}
+
+// Un <w:br/> parte el parrafo en varios renglones.
+function lineasDeRuns(runs) {
+  const lineas = [[]];
+  for (const r of runs) {
+    const partes = r.t.split('\n');
+    partes.forEach((parte, i) => {
+      if (i > 0) lineas.push([]);
+      if (parte) lineas[lineas.length - 1].push({t: parte, b: r.b, c: r.c});
+    });
+  }
+  return lineas;
+}
+
+// Texto plano de un renglon, con las negritas marcadas entre ** **. Es lo que
+// se guarda como contenido; el color no cabe aqui y viaja aparte (ver
+// "original" en leerDocx).
+function textoDeRuns(runs) {
+  const juntos = [];
+  for (const r of runs) {
+    if (!r.t) continue;
+    // Un trozo en blanco no se marca aunque venga en negrita.
+    const b = !!r.b && r.t.trim() !== '';
+    if (juntos.length && juntos[juntos.length - 1].b === b) juntos[juntos.length - 1].t += r.t;
+    else juntos.push({t: r.t, b});
+  }
+  return juntos.map((r) => (r.b ? '**' + r.t + '**' : r.t)).join('');
+}
+
+function esTitulo(p) {
+  const pPr = hijos(p, 'pPr')[0];
+  if (!pPr) return false;
+  const estilo = hijos(pPr, 'pStyle')[0];
+  const val = estilo ? (attr(estilo, 'val') || '') : '';
+  if (/^(heading|t.tulo|title)/i.test(val)) return true;
+  return hijos(pPr, 'outlineLvl').length > 0;
+}
+
+// Cada celda se vuelca ENTERA antes de pasar a la siguiente. Cuando alguien
+// maqueta una cancion en una tabla de dos celdas, la izquierda tiene la
+// primera mitad y la derecha el resto: juntando las filas se mezclaria el
+// verso de la izquierda con el de la derecha renglon a renglon.
+function lineasDeTabla(tbl) {
+  const lineas = [];
+  for (const fila of hijos(tbl, 'tr')) {
+    for (const celda of hijos(fila, 'tc')) {
+      let algo = false;
+      for (const p of hijos(celda, 'p')) {
+        for (const ln of lineasDeRuns(runsDeParrafo(p))) {
+          lineas.push(ln);
+          if (ln.length) algo = true;
+        }
+      }
+      if (algo) lineas.push([]);
+    }
+  }
+  return lineas;
+}
+
+// Se mira en dos sitios y gana el mayor: la maquetacion de pagina de Word
+// y el numero de columnas de las tablas, que es como mucha gente monta el
+// mismo efecto a mano.
+function columnasDelDocumento(xml) {
+  let columnas = 1;
+  for (const cols of Array.from(xml.getElementsByTagNameNS(W, 'cols'))) {
+    const num = attr(cols, 'num');
+    if (num && /^\d+$/.test(num)) columnas = Math.max(columnas, parseInt(num, 10));
+  }
+  for (const grid of Array.from(xml.getElementsByTagNameNS(W, 'tblGrid'))) {
+    columnas = Math.max(columnas, hijos(grid, 'gridCol').length);
+  }
+  return entre(columnas, 1, MAX_COLUMNAS, 1);
+}
+
+async function leerDocx(archivo) {
+  let zip;
+  try {
+    zip = await JSZip.loadAsync(await archivo.arrayBuffer());
+  } catch (e) {
+    // El mensaje de la libreria es tecnico y viene en ingles.
+    throw new Error('No se pudo abrir el archivo: esta danado o no es un .docx.');
+  }
+  const entrada = zip.file('word/document.xml');
+  if (!entrada) throw new Error('Ese archivo no es un .docx de Word. Si es un .doc antiguo, abrelo en Word y guardalo como .docx.');
+
+  const xml = new DOMParser().parseFromString(await entrada.async('string'), 'application/xml');
+  if (xml.getElementsByTagName('parsererror').length) throw new Error('El documento esta danado y no se pudo leer.');
+
+  const body = hijos(xml.documentElement, 'body')[0];
+  if (!body) throw new Error('El documento no tiene contenido.');
+
+  // Se recogen los renglones CON formato; el texto plano se deriva de ellos,
+  // asi que las dos vistas salen exactamente del mismo recorrido.
+  const renglones = [];
+  let titulo = '';
+
+  for (const bloque of Array.from(body.children)) {
+    if (bloque.localName === 'tbl') { renglones.push(...lineasDeTabla(bloque)); continue; }
+    if (bloque.localName !== 'p') continue;
+    const lns = lineasDeRuns(runsDeParrafo(bloque));
+    if (!titulo && esTitulo(bloque) && textoDeRuns(lns[0] || []).trim()) {
+      titulo = textoDeRuns(lns[0]).trim();
+      continue;
+    }
+    renglones.push(...lns);
+  }
+
+  // Sin estilos de encabezado, el primer renglon con texto hace de titulo.
+  if (!titulo) {
+    const i = renglones.findIndex((ln) => textoDeRuns(ln).trim());
+    if (i >= 0) { titulo = textoDeRuns(renglones[i]).trim(); renglones.splice(i, 1); }
+  }
+
+  let artista = '';
+  const m = /^(.*?)\s+[-–—]\s+(.+)$/.exec(titulo);
+  if (m) { titulo = m[1].trim(); artista = m[2].trim(); }
+
+  const lineas = renglones.map((ln) => textoDeRuns(ln).replace(/\s+$/, ''));
+
+  return {
+    titulo: titulo || 'Sin titulo',
+    artista,
+    // Tres o mas saltos seguidos se quedan en dos: Word abusa de parrafos vacios.
+    contenido: lineas.join('\n').replace(/^\n+|\n+$/g, '').replace(/\n{3,}/g, '\n\n'),
+    columnas: columnasDelDocumento(xml),
+    // Copia fiel para la vista Original: cada renglon con sus trozos, su
+    // negrita y su color. No pasa por el parser ni se usa para nada mas.
+    // Cada renglon va envuelto en un objeto porque Firestore no admite un
+    // array dentro de otro array. Se lee con las dos formas (ver pintarOriginal).
+    original: renglones.map((ln) => ({r: ln.map((r) => {
+      const t = {t: r.t};
+      if (r.b) t.b = 1;
+      if (r.c) t.c = r.c;
+      return t;
+    })})),
+  };
+}
+
+// ======================================================================
+//  LEER PDF
+//  Un PDF no tiene lineas ni sangrias: solo trozos de texto con su posicion
+//  en la pagina. Se reconstruye la hoja agrupando por altura y convirtiendo
+//  la coordenada X de cada trozo en una columna de caracteres, que es lo que
+//  el parser necesita para saber que acorde va sobre que silaba.
+// ======================================================================
+let pdfjsListo = null;
+
+function asegurarPdfjs() {
+  if (pdfjsListo) return pdfjsListo;
+  pdfjsListo = new Promise((resolve, reject) => {
+    const base = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+    const s = document.createElement('script');
+    s.src = base + 'pdf.min.js';
+    s.onload = () => {
+      if (!window.pdfjsLib) { reject(new Error('No se pudo preparar el lector de PDF.')); return; }
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = base + 'pdf.worker.min.js';
+      resolve(window.pdfjsLib);
+    };
+    s.onerror = () => reject(new Error('No se pudo descargar el lector de PDF. Comprueba la conexion.'));
+    document.head.appendChild(s);
+  });
+  return pdfjsListo;
+}
+
+function lineasDePagina(items) {
+  const trozos = items.filter((it) => it.str && it.str.length);
+  if (!trozos.length) return [];
+
+  // Ancho tipico de un caracter, por la mediana: sirve para pasar de puntos
+  // a columnas sin que un titulo enorme desvirtue la escala.
+  const anchos = trozos.map((it) => it.width / it.str.length).filter((w) => w > 0).sort((a, b) => a - b);
+  const anchoChar = anchos.length ? anchos[Math.floor(anchos.length / 2)] : 5;
+  const minX = Math.min(...trozos.map((it) => it.transform[4]));
+
+  // Se agrupan por altura con tolerancia: dos trozos de la misma linea
+  // rara vez comparten la Y al decimal.
+  const filas = [];
+  for (const it of trozos) {
+    const y = it.transform[5];
+    let fila = filas.find((f) => Math.abs(f.y - y) <= 3);
+    if (!fila) { fila = {y, trozos: []}; filas.push(fila); }
+    fila.trozos.push(it);
+  }
+  filas.sort((a, b) => b.y - a.y);   // en un PDF la Y crece hacia arriba
+
+  // Hueco vertical normal entre renglones, para saber cuando hay un salto.
+  const saltos = [];
+  for (let i = 1; i < filas.length; i++) saltos.push(filas[i - 1].y - filas[i].y);
+  saltos.sort((a, b) => a - b);
+  const saltoNormal = saltos.length ? saltos[Math.floor(saltos.length / 2)] : 12;
+
+  const salida = [];
+  filas.forEach((fila, i) => {
+    if (i > 0 && (filas[i - 1].y - fila.y) > saltoNormal * 1.6) salida.push('');
+    fila.trozos.sort((a, b) => a.transform[4] - b.transform[4]);
+    let linea = '';
+    for (const it of fila.trozos) {
+      const col = Math.max(0, Math.round((it.transform[4] - minX) / anchoChar));
+      if (col > linea.length) linea += ' '.repeat(col - linea.length);
+      linea += it.str;
+    }
+    salida.push(linea.replace(/\s+$/, ''));
+  });
+  return salida;
+}
+
+async function leerPdf(archivo) {
+  const pdfjs = await asegurarPdfjs();
+  let doc;
+  try {
+    doc = await pdfjs.getDocument({data: await archivo.arrayBuffer()}).promise;
+  } catch (e) {
+    throw new Error('No se pudo abrir el PDF (puede estar protegido con contrasena o danado).');
+  }
+
+  const lineas = [];
+  for (let p = 1; p <= doc.numPages; p++) {
+    const pagina = await doc.getPage(p);
+    const contenido = await pagina.getTextContent();
+    if (p > 1) lineas.push('');
+    lineas.push(...lineasDePagina(contenido.items));
+  }
+
+  if (!lineas.some((l) => l.trim())) {
+    throw new Error('El PDF no tiene texto: parece escaneado como imagen. Hace falta pasarle un OCR antes.');
+  }
+
+  let titulo = '';
+  const i = lineas.findIndex((l) => l.trim());
+  if (i >= 0) { titulo = lineas[i].trim(); lineas.splice(i, 1); }
+
+  let artista = '';
+  const m = /^(.*?)\s+[-–—]\s+(.+)$/.exec(titulo);
+  if (m) { titulo = m[1].trim(); artista = m[2].trim(); }
+
+  return {
+    titulo: titulo || archivo.name.replace(/\.pdf$/i, ''),
+    artista,
+    contenido: lineas.join('\n').replace(/^\n+|\n+$/g, '').replace(/\n{3,}/g, '\n\n'),
+    columnas: 1,   // un PDF ya viene paginado; repartirlo otra vez confundiria
+  };
+}
+
+// ======================================================================
+//  IMPORTACION MASIVA
+//  Los documentos se leen todos, se muestran para revisar, y solo entonces
+//  se guardan. Igual que la importacion de uno en uno: Word y PDF traen
+//  basura a menudo, y el paso de revision es intencionado.
+// ======================================================================
+let lote = [];
+
+const avisoLote = (t, esError) => {
+  $('#estado-lote').textContent = t;
+  $('#estado-lote').className = esError ? 'error' : '';
+};
+
+function pintarLote() {
+  const caja = $('#lista-lote');
+  caja.textContent = '';
+
+  for (const f of lote) {
+    const fila = document.createElement('div');
+    fila.className = 'fila-lote';
+
+    const casilla = document.createElement('input');
+    casilla.type = 'checkbox';
+    casilla.checked = f.incluir;
+    casilla.disabled = f.estado !== 'listo';
+    casilla.setAttribute('aria-label', 'Incluir ' + f.nombre);
+    casilla.onchange = () => { f.incluir = casilla.checked; actualizarBotonLote(); };
+
+    // Un unico campo libre por cancion: el usuario escribe ahi el nombre
+    // completo como quiera verlo en la lista ("Amerika - Lucie"), en vez de
+    // que la app le parta el titulo del artista en dos renglones.
+    const datos = document.createElement('div');
+    datos.className = 'datos';
+    if (f.estado === 'listo') {
+      const campo = document.createElement('input');
+      campo.value = f.nombre;
+      campo.setAttribute('aria-label', 'Nombre de la cancion');
+      campo.onchange = () => { f.nombre = campo.value.trim() || f.nombre; };
+      datos.appendChild(campo);
+    } else {
+      const nom = document.createElement('div');
+      nom.textContent = f.nombre;
+      datos.appendChild(nom);
+    }
+    fila.title = f.archivoNombre;   // de que documento salio, sin gastar renglon
+
+    const marca = document.createElement('span');
+    if (f.estado === 'leyendo') { marca.className = 'marca'; marca.textContent = 'Leyendo...'; }
+    else if (f.estado === 'pendiente') { marca.className = 'marca'; marca.textContent = 'En cola'; }
+    else if (f.estado === 'error') { marca.className = 'marca mal'; marca.textContent = f.error; }
+    else if (f.estado === 'guardada') { marca.className = 'marca bien'; marca.textContent = 'Guardada'; }
+    else {
+      marca.className = 'marca bien';
+      marca.textContent = f.acordes + (f.acordes === 1 ? ' acorde' : ' acordes')
+        + (f.columnas > 1 ? ' · ' + f.columnas + ' col' : '');
+    }
+
+    fila.append(casilla, datos, marca);
+    caja.appendChild(fila);
+  }
+  actualizarBotonLote();
+}
+
+function actualizarBotonLote() {
+  const n = lote.filter((f) => f.incluir && f.estado === 'listo').length;
+  const boton = $('#btn-guardar-lote');
+  boton.textContent = n ? 'Guardar ' + n : 'Guardar';
+  boton.disabled = n === 0;
+}
+
+async function abrirLote(archivos) {
+  const elegidos = Array.from(archivos || []);
+  if (!elegidos.length) return;
+
+  const alfabetico = (a, b) => a.localeCompare(b, 'es', {sensitivity: 'base'});
+
+  // El nombre de la cancion es el del ARCHIVO, tal cual (sin la extension).
+  // Es lo que pidio el usuario: el titulo que trae el documento por dentro se
+  // ignora, porque el nombre del archivo es el que el se ha molestado en poner.
+  lote = elegidos.map((a) => ({
+    archivoNombre: a.name,
+    nombre: a.name.replace(/\.(docx|pdf)$/i, ''),
+    archivo: a, estado: 'pendiente', incluir: true,
+  }));
+  lote.sort((x, y) => alfabetico(x.archivoNombre, y.archivoNombre));
+  $('#lote').classList.add('abierto');
+  avisoLote('Leyendo ' + lote.length + (lote.length === 1 ? ' documento...' : ' documentos...'));
+  pintarLote();
+
+  let fallidos = 0;
+  for (const f of lote) {
+    f.estado = 'leyendo';
+    pintarLote();
+    try {
+      const r = /\.pdf$/i.test(f.archivoNombre) ? await leerPdf(f.archivo) : await leerDocx(f.archivo);
+      // f.nombre NO se toca: se queda el del archivo. Sigue siendo editable.
+      f.contenido = r.contenido;
+      f.columnas = r.columnas;
+      f.original = r.original || null;
+      f.acordes = acordesUsados(r.contenido).length;
+      f.estado = 'listo';
+    } catch (e) {
+      f.estado = 'error';
+      f.error = e.message;
+      f.incluir = false;
+      fallidos++;
+    }
+    pintarLote();
+  }
+
+  // Se reordena por el nombre ya leido, ahora que nada esta en vuelo.
+  lote.sort((x, y) => alfabetico(x.nombre, y.nombre));
+  pintarLote();
+
+  const listos = lote.filter((f) => f.estado === 'listo').length;
+  const noLeidos = fallidos === 1 ? '1 no se pudo leer' : fallidos + ' no se pudieron leer';
+  avisoLote(fallidos
+    ? (listos === 1 ? '1 lista, ' : listos + ' listas, ') + noLeidos + '.'
+    : 'Revisa los titulos y guarda.', listos === 0);
+}
+
+function cerrarLote() {
+  $('#lote').classList.remove('abierto');
+  $('#f-lote').value = '';
+}
+
+async function guardarLote() {
+  if (!db) { avisoLote('Sin almacenamiento no se puede guardar.', true); return; }
+  const elegidas = lote.filter((f) => f.incluir && f.estado === 'listo');
+  if (!elegidas.length) return;
+
+  $('#btn-guardar-lote').disabled = true;
+  let n = 0;
+
+  for (const f of elegidas) {
+    avisoLote('Guardando ' + (n + 1) + ' de ' + elegidas.length + '...');
+    try {
+      // Al importar NO se pide nada: nombre del archivo y contenido, y ya.
+      // Genero, tono, capo y demas se ponen luego desde Editar, si hace falta.
+      await guardarCancion(null, {
+        titulo: f.nombre, artista: '', tono: '', capo: 0, etiquetas: '',
+        contenido: f.contenido, genero_id: null, columnas: f.columnas,
+        original: f.original || null,
+      });
+      f.estado = 'guardada';
+      f.incluir = false;
+      n++;
+    } catch (e) {
+      f.estado = 'error';
+      f.error = e.code === 'quota_exceeded' ? 'La base esta llena' : 'No se pudo guardar';
+      f.incluir = false;
+    }
+    pintarLote();
+  }
+
+  avisoLote(n === elegidas.length
+    ? (n === 1 ? 'Guardada.' : 'Guardadas ' + n + ' canciones.')
+    : 'Guardadas ' + n + ' de ' + elegidas.length + '.', n < elegidas.length);
+  if (n === elegidas.length) setTimeout(cerrarLote, 900);
+}
+
+// ======================================================================
+//  COPIA DE SEGURIDAD
+//  Un solo archivo .json con todo el repertorio. Es lo que hace que las
+//  canciones no queden atrapadas en ningun sitio: sirve para respaldar, para
+//  cambiar de dispositivo y para mudarse de la version de claude.ai a la que
+//  este alojada en la web (o al reves).
+// ======================================================================
+const abrirCopia = () => {
+  $('#copia').classList.add('abierto');
+  avisoCopia('');
+  $('#btn-salir').hidden = !window.__salirDeGoogle;
+};
+const cerrarCopia = () => $('#copia').classList.remove('abierto');
+const avisoCopia = (t, esError) => {
+  $('#estado-copia').textContent = t;
+  $('#estado-copia').className = esError ? 'error' : '';
+};
+
+function nombreDeCopia() {
+  const hoy = new Date().toISOString().slice(0, 10);
+  return 'cancionero-' + hoy + '.json';
+}
+
+async function descargarCopia() {
+  const datos = JSON.stringify({
+    version: 1,
+    generado: new Date().toISOString(),
+    canciones,
+    generos,
+  }, null, 1);
+
+  // Dentro de claude.ai la descarga la tiene que ofrecer el visor; fuera basta
+  // con un enlace. Se intenta lo primero y se cae a lo segundo.
+  try {
+    const descargas = (window.claude && window.claude.use) ? await window.claude.use('downloads') : null;
+    if (descargas) {
+      await descargas.save({filename: nombreDeCopia(), data: datos});
+      avisoCopia('Copia descargada.');
+      return;
+    }
+  } catch (e) {
+    avisoCopia('No se pudo descargar (' + ((e && e.code) || 'error') + ').', true);
+    return;
+  }
+
+  const url = URL.createObjectURL(new Blob([datos], {type: 'application/json'}));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombreDeCopia();
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  avisoCopia('Copia descargada.');
+}
+
+// --- Repertorio publicado junto a la app --------------------------------
+// Cuando la app esta alojada en un sitio propio (GitHub Pages y similares),
+// puede haber un `repertorio.json` al lado del index.html. Sirve para que un
+// dispositivo nuevo -- el movil, la tablet, otro navegador -- tenga todo el
+// repertorio nada mas abrir, sin restaurar nada a mano.
+//
+// Regla deliberada: se carga SOLO si este navegador no tiene ninguna cancion.
+// Nunca pisa lo que ya hay. Para traerlo a proposito esta el boton de la
+// ventana de Copia, que avisa antes.
+async function leerRepertorioDelSitio() {
+  try {
+    const r = await fetch('repertorio.json', {cache: 'no-cache'});
+    if (!r.ok) return null;
+    const datos = await r.json();
+    return Array.isArray(datos && datos.canciones) ? datos : null;
+  } catch (e) {
+    return null;   // no hay archivo (o estamos en claude.ai): no pasa nada
+  }
+}
+
+async function volcar(datos) {
+  let n = 0;
+  for (const g of datos.generos || []) {
+    if (!g || !g.id) continue;
+    await db.doc('generos/' + g.id).set({nombre: String(g.nombre || 'Sin nombre')});
+  }
+  for (const c of datos.canciones) {
+    if (!c || !c.id) continue;
+    const cuerpo = limpiar(c);
+    cuerpo.creada = c.creada || new Date().toISOString();
+    cuerpo.editada = c.editada || cuerpo.creada;
+    await db.doc('canciones/' + c.id).set(cuerpo);
+    n++;
+  }
+  return n;
+}
+
+// Primera visita en este navegador: si el sitio trae repertorio, se carga.
+async function sembrarSiHaceFalta() {
+  if (!db || canciones.length) return;
+  const datos = await leerRepertorioDelSitio();
+  if (!datos || !datos.canciones.length) return;
+  try {
+    const n = await volcar(datos);
+    sinAlmacen('Repertorio cargado del sitio (' + n + ' canciones). Lo que anadas aqui '
+      + 'se guarda en este navegador.');
+  } catch (e) { /* si no se puede sembrar, la app arranca vacia y ya */ }
+}
+
+async function traerDelSitio() {
+  const datos = await leerRepertorioDelSitio();
+  if (!datos) {
+    avisoCopia('Este sitio no tiene un repertorio publicado (repertorio.json).', true);
+    return;
+  }
+  if (!confirm('Traer ' + datos.canciones.length + ' canciones del sitio?\n\n'
+    + 'Las que coincidan se actualizan; las tuyas que no esten en el archivo se quedan.')) return;
+  try {
+    const n = await volcar(datos);
+    avisoCopia('Traidas ' + n + ' canciones del sitio.');
+  } catch (e) {
+    avisoCopia('No se pudo traer (' + ((e && (e.code || e.message)) || 'error') + ').', true);
+  }
+}
+
+async function restaurarCopia(archivo) {
+  if (!archivo) return;
+  if (!db) { avisoCopia('Sin almacenamiento no se puede restaurar.', true); return; }
+
+  let datos;
+  try {
+    datos = JSON.parse(await archivo.text());
+  } catch (e) {
+    avisoCopia('Ese archivo no es una copia valida.', true);
+    return;
+  }
+  const entran = Array.isArray(datos && datos.canciones) ? datos.canciones : null;
+  if (!entran) { avisoCopia('Ese archivo no es una copia valida.', true); return; }
+
+  const total = entran.length + ((datos.generos || []).length);
+  if (!confirm('Restaurar ' + entran.length + ' canciones?\n\nLas que tengan el mismo '
+    + 'identificador se sobrescriben; el resto de tu repertorio se queda como esta.')) return;
+
+  let n = 0;
+  try {
+    for (const g of datos.generos || []) {
+      if (!g || !g.id) continue;
+      await db.doc('generos/' + g.id).set({nombre: String(g.nombre || 'Sin nombre')});
+      n++;
+      avisoCopia('Restaurando ' + n + ' de ' + total + '...');
+    }
+    for (const c of entran) {
+      if (!c || !c.id) continue;
+      const cuerpo = limpiar(c);
+      cuerpo.creada = c.creada || new Date().toISOString();
+      cuerpo.editada = new Date().toISOString();
+      await db.doc('canciones/' + c.id).set(cuerpo);
+      n++;
+      avisoCopia('Restaurando ' + n + ' de ' + total + '...');
+    }
+  } catch (e) {
+    avisoCopia('Se restauraron ' + n + ' y fallo: ' + ((e && e.message) || e.code || 'error'), true);
+    return;
+  }
+  avisoCopia('Restauradas ' + entran.length + ' canciones.');
+  $('#f-copia').value = '';
+}
+
+// ======================================================================
+//  EDITOR
+// ======================================================================
+function pintarSelectGeneros(seleccion, destino) {
+  const sel = destino || $('#f-genero');
+  sel.textContent = '';
+  const ninguno = document.createElement('option');
+  ninguno.value = '';
+  ninguno.textContent = 'Sin genero';
+  sel.appendChild(ninguno);
+  for (const g of generos) {
+    const o = document.createElement('option');
+    o.value = g.id;
+    o.textContent = g.nombre;
+    sel.appendChild(o);
+  }
+  sel.value = seleccion || '';
+}
+
+function abrirEditor(cancion) {
+  editando = cancion ? cancion.id : null;
+  $('#editor-titulo').textContent = cancion ? 'Editar cancion' : 'Nueva cancion';
+  $('#f-titulo').value = cancion ? cancion.titulo : '';
+  $('#f-artista').value = cancion ? (cancion.artista || '') : '';
+  $('#f-tono').value = cancion ? (cancion.tono || '') : '';
+  $('#f-capo').value = cancion && cancion.capo ? cancion.capo : '';
+  $('#f-etiquetas').value = cancion ? (cancion.etiquetas || '') : '';
+  $('#f-contenido').value = cancion ? cancion.contenido : '';
+  $('#f-columnas').value = String((cancion && cancion.columnas) || 1);
+  pintarSelectGeneros(cancion ? cancion.genero_id : null);
+  $('#btn-borrar').hidden = !cancion;
+  aviso('');
+  $('#editor').classList.add('abierto');
+  refrescarPrevia();
+  $('#f-titulo').focus();
+}
+
+function cerrarEditor() {
+  $('#editor').classList.remove('abierto');
+  $('#f-docx').value = '';
+}
+
+const aviso = (texto, esError) => {
+  $('#estado').textContent = texto;
+  $('#estado').className = esError ? 'error' : '';
+};
+
+let tempPrevia = null;
+function refrescarPrevia() {
+  clearTimeout(tempPrevia);
+  tempPrevia = setTimeout(() => {
+    const contenido = $('#f-contenido').value;
+    const previa = $('#previa');
+    previa.textContent = '';
+    if (!contenido.trim()) {
+      previa.textContent = 'La vista previa aparece aqui mientras escribes.';
+      previa.style.color = 'var(--suave)';
+      return;
+    }
+    previa.style.color = '';
+    const acordes = acordesUsados(contenido);
+    const cabecera = document.createElement('div');
+    cabecera.className = 'aviso';
+    cabecera.textContent = 'Vista previa · ' + acordes.length + ' acordes detectados';
+    const caja = document.createElement('div');
+    previa.append(cabecera, caja);
+    // Sin transponer: el editor muestra la cancion tal como se guarda.
+    pintarCifrado(parsear(contenido), caja, 0);
+  }, 200);
+}
+
+async function guardar() {
+  if (!db) { aviso('Sin almacenamiento no se puede guardar.', true); return; }
+  const datos = {
+    titulo: $('#f-titulo').value,
+    artista: $('#f-artista').value,
+    tono: $('#f-tono').value,
+    capo: $('#f-capo').value || 0,
+    etiquetas: $('#f-etiquetas').value,
+    contenido: $('#f-contenido').value,
+    genero_id: $('#f-genero').value || null,
+    columnas: $('#f-columnas').value || 1,
+  };
+  if (!datos.titulo.trim()) {
+    aviso('Ponle un titulo a la cancion.', true);
+    $('#f-titulo').focus();
+    return;
+  }
+  try {
+    aviso('Guardando...');
+    const guardada = await guardarCancion(editando, datos);
+    cerrarEditor();
+    // La lista se refresca sola por la suscripcion; se abre ya la cancion.
+    canciones = canciones.filter((c) => c.id !== guardada.id).concat([guardada]);
+    abrir(guardada.id);
+  } catch (e) {
+    aviso(e.code === 'quota_exceeded'
+      ? 'No cabe mas. Borra alguna cancion para poder guardar.'
+      : (e.message || 'No se pudo guardar (' + (e.code || 'error') + ').'), true);
+  }
+}
+
+async function importarDocx(archivo) {
+  if (!archivo) return;
+  try {
+    aviso('Leyendo ' + archivo.name + '...');
+    const r = await leerDocx(archivo);
+    // Igual que en la importacion masiva: manda el nombre del archivo.
+    $('#f-titulo').value = archivo.name.replace(/\.(docx|pdf)$/i, '');
+    $('#f-contenido').value = r.contenido;
+    $('#f-columnas').value = String(r.columnas);
+    refrescarPrevia();
+    aviso(r.columnas > 1
+      ? 'Documento importado. Venia en ' + r.columnas + ' columnas y se guardara asi.'
+      : 'Documento importado. Revisa la vista previa y guarda.');
+  } catch (e) { aviso(e.message, true); }
+  $('#f-docx').value = '';
+}
+
+// ======================================================================
+//  CABLEADO
+// ======================================================================
+$('#buscar').oninput = pintarLista;
+$('#buscar').onkeydown = (e) => {
+  if (e.key === 'Enter') {
+    const halladas = filtradas();
+    if (halladas.length) { e.preventDefault(); abrir(halladas[0].id); }
+  }
+};
+
+$('#btn-lista').onclick = () => app.classList.toggle('sin-lista');
+$('#btn-tema').onclick = alternarTema;
+$('#btn-nueva').onclick = () => abrirEditor(null);
+$('#btn-volver').onclick = cerrarCancion;
+$('#btn-scroll').onclick = alternarScroll;
+$('#btn-menos').onclick = () => cambiarTam(-2);
+$('#btn-mas').onclick = () => cambiarTam(2);
+$('#btn-foco').onclick = () => app.classList.toggle('concentracion');
+$('#btn-editar').onclick = () => actual && abrirEditor(actual);
+$('#btn-columnas').onclick = cambiarColumnas;
+$('#btn-fuente').onclick = alternarFuente;
+$('#btn-bajar').onclick = () => cambiarTono(-1);
+$('#btn-subir').onclick = () => cambiarTono(1);
+$('#btn-tono').onclick = () => cambiarTono(0);
+
+// Borrar vive dentro del editor: es una accion sobre la cancion que se esta
+// editando, y ahi no se pulsa por error mientras se toca.
+$('#btn-borrar').onclick = async () => {
+  if (!editando || !db) return;
+  const nombre = $('#f-titulo').value.trim() || 'esta cancion';
+  if (!confirm('Borrar "' + nombre + '"? No se puede deshacer.')) return;
+  const id = editando;
+  try {
+    await db.doc('canciones/' + id).delete();
+  } catch (e) {
+    aviso('No se pudo borrar (' + (e.code || e.message) + ').', true);
+    return;
+  }
+  canciones = canciones.filter((c) => c.id !== id);
+  cerrarEditor();
+  cerrarCancion();
+};
+
+$('#velocidad').oninput = (e) => ponerVelocidad(+e.target.value);
+
+$('#btn-cerrar').onclick = cerrarEditor;
+$('#btn-guardar').onclick = guardar;
+$('#f-contenido').oninput = refrescarPrevia;
+$('#f-docx').onchange = (e) => importarDocx(e.target.files[0]);
+$('#editor').onclick = (e) => { if (e.target.id === 'editor') cerrarEditor(); };
+
+$('#f-lote').onchange = (e) => abrirLote(e.target.files);
+$('#btn-cerrar-lote').onclick = cerrarLote;
+$('#btn-guardar-lote').onclick = guardarLote;
+$('#lote').onclick = (e) => { if (e.target.id === 'lote') cerrarLote(); };
+
+$('#btn-copia').onclick = abrirCopia;
+$('#btn-cerrar-copia').onclick = cerrarCopia;
+$('#btn-bajar-copia').onclick = descargarCopia;
+$('#btn-traer').onclick = traerDelSitio;
+$('#btn-salir').onclick = () => window.__salirDeGoogle && window.__salirDeGoogle();
+$('#f-copia').onchange = (e) => restaurarCopia(e.target.files[0]);
+$('#copia').onclick = (e) => { if (e.target.id === 'copia') cerrarCopia(); };
+
+$('#btn-grupos').onclick = abrirGrupos;
+$('#btn-cerrar-grupos').onclick = cerrarGrupos;
+$('#btn-add-grupo').onclick = crearGrupo;
+$('#f-nuevo-grupo').onkeydown = (e) => { if (e.key === 'Enter') crearGrupo(); };
+$('#grupos').onclick = (e) => { if (e.target.id === 'grupos') cerrarGrupos(); };
+
+// El boton de volver solo tiene sentido en movil, donde lista y cancion se
+// turnan la pantalla.
+const esMovil = window.matchMedia('(max-width:760px)');
+const ajustarVolver = () => { $('#btn-volver').hidden = !esMovil.matches; };
+esMovil.addEventListener('change', ajustarVolver);
+ajustarVolver();
+
+document.onkeydown = (e) => {
+  const escribiendo = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+
+  if (e.key === 'Escape') {
+    if ($('#copia').classList.contains('abierto')) cerrarCopia();
+    else if ($('#lote').classList.contains('abierto')) cerrarLote();
+    else if ($('#grupos').classList.contains('abierto')) cerrarGrupos();
+    else if ($('#editor').classList.contains('abierto')) cerrarEditor();
+    else if (app.classList.contains('concentracion')) app.classList.remove('concentracion');
+    else if (escribiendo) e.target.blur();
+    return;
+  }
+  if ($('#copia').classList.contains('abierto')) return;
+  if ($('#lote').classList.contains('abierto')) return;
+  if ($('#grupos').classList.contains('abierto')) return;
+  if ($('#editor').classList.contains('abierto')) {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); guardar(); }
+    return;
+  }
+  if (escribiendo) return;
+
+  if (e.key === '/') { e.preventDefault(); $('#buscar').focus(); $('#buscar').select(); }
+  else if (e.key === ' ' && actual) { e.preventDefault(); alternarScroll(); }
+  else if (e.key === 'f' && actual) app.classList.toggle('concentracion');
+  else if (e.key === '+' || e.key === '=') cambiarTam(2);
+  else if (e.key === '-') cambiarTam(-2);
+  else if (e.key === 'ArrowUp' && actual) { e.preventDefault(); cambiarTono(1); }
+  else if (e.key === 'ArrowDown' && actual) { e.preventDefault(); cambiarTono(-1); }
+};
+
+ponerVelocidad(pref.vel);
+$('#lista').innerHTML = '<div id="vacio">Cargando tu repertorio...</div>';
+iniciarAlmacen();
+</script>
+
+</body>
+</html>
