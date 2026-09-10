@@ -104,14 +104,15 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
    nombre de la cancion, que son los dos elasticos. */
 @media (min-width:1050px){
   #cabecera{flex-wrap:nowrap}
-  #controles{flex-wrap:nowrap}
+  /* Con dos ids: la regla base de #controles va mas abajo en la hoja y con
+     un solo id ganaba por orden de aparicion. */
+  #cabecera #controles{flex-wrap:nowrap}
 }
 /* Entre 1050 y 1500 la fila solo cabe apretando: fuera la marca y la lista de
    acordes, y las acciones se quedan con su etiqueta corta. Por encima de
    1500 se ve todo con letra entera. */
 @media (min-width:761px) and (max-width:1500px){
   #marca{display:none}
-  #app.viendo #meta{display:none}
   #vel-txt{display:none}
   #acciones .btn{font-size:0;padding:6px 9px}
   #acciones .btn::before{content:attr(data-corto);font-size:12px;font-weight:500}
@@ -229,8 +230,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #acciones{display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex:0 0 auto}
 #acciones .btn{padding:6px 10px}
 #encabezado{
-  display:flex;align-items:baseline;gap:8px;min-width:0;flex:1 1 120px;overflow:hidden;
+  display:flex;align-items:baseline;gap:8px;min-width:0;flex:0 1 auto;overflow:hidden;
 }
+/* Las acciones van pegadas al nombre, y el hueco que sobra queda detrás: asi
+   el bloque nombre+herramientas se lee como una sola cosa. */
+#acciones{margin-right:auto}
 #titulo,#artista,#meta{
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;
 }
@@ -569,6 +573,9 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
      tocar en el segundo. Las acciones sobre la hoja se van a una columna
      pegada al borde izquierdo, que fue lo que pidio el usuario. */
   #buscar{flex:1 1 140px;min-width:120px}
+  /* Aqui el nombre SI se estira y se recorta: sin eso ocupaba su ancho
+     entero y empujaba el autoscroll a un tercer renglon. */
+  #encabezado{flex:1 1 60px}
   /* En movil la biblioteca comparte el primer renglon con el buscador y la
      fila de tocar baja entera al segundo. En escritorio es al reves: los tres
      botones se quedan al borde derecho, como estaban. */
@@ -632,8 +639,14 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
     <input id="buscar" type="search" placeholder="Buscar cancion, artista o letra..." autocomplete="off" aria-label="Buscar">
     <div id="controles">
       <!-- Renglon de la cancion: solo aparece con una abierta. Las acciones
-           sobre la hoja van a la IZQUIERDA del nombre, como pidio el usuario;
+           sobre la hoja van a la DERECHA del nombre, como pidio el usuario;
            el autoscroll y el tono quedan al otro extremo. -->
+      <span id="encabezado">
+        <b id="titulo"></b>
+        <span id="artista"></span>
+        <span id="meta"></span>
+        <span id="posicion"></span>
+      </span>
       <div id="acciones">
         <button class="btn" id="btn-columnas" data-corto="1 col" title="Columnas en las que se reparte la cancion">1 col</button>
         <button class="btn" id="btn-fuente" data-corto="Orig" title="Ver el texto tal cual vino del documento, sin interpretar acordes">Original</button>
@@ -642,12 +655,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
         <button class="btn" id="btn-foco" data-corto="Foco" title="Modo concentracion">Concentracion</button>
         <button class="btn" id="btn-editar" data-corto="&#9998;" title="Editar la cancion">Editar</button>
       </div>
-      <span id="encabezado">
-        <b id="titulo"></b>
-        <span id="artista"></span>
-        <span id="meta"></span>
-        <span id="posicion"></span>
-      </span>
       <button class="btn" id="btn-scroll" data-corto="&#9654;">&#9654; Autoscroll</button>
       <input id="velocidad" type="range" min="4" max="60" step="1" title="Velocidad del autoscroll" aria-label="Velocidad del autoscroll">
       <span id="vel-txt"></span>
@@ -1209,7 +1216,6 @@ function cambiarTono(n) {
   if (semis > 6) semis -= 12;   // se prefiere -2 antes que +10: es el mismo tono
   guardar1('tono:' + actual.id, semis);
   pintarTono();
-  pintarAcordes();
   pintarCifrado(actual.estructura, $('#cifrado'), semis);
 }
 
@@ -1312,11 +1318,11 @@ function pintarCifrado(estructura, destino, n) {
   }
 }
 
-function pintarAcordes() {
-  const bemoles = usarBemoles();
-  const partes = (actual.acordes || []).map((a) => transponer(a, semis, bemoles));
-  const capo = actual.capo ? 'Capo ' + actual.capo : '';
-  $('#meta').textContent = [capo, partes.join('  ')].filter(Boolean).join('  ·  ');
+// La lista de acordes de la cancion se quitó de la barra: el usuario la pidió
+// fuera, y ya está a la vista en el propio cifrado. Queda el capo, que no se
+// ve en ninguna otra parte.
+function pintarCapo() {
+  $('#meta').textContent = actual.capo ? 'Capo ' + actual.capo : '';
 }
 
 // ======================================================================
@@ -1804,7 +1810,7 @@ function refrescarAbierta(datos) {
   $('#titulo').textContent = actual.titulo;
   $('#artista').textContent = actual.artista || '';
   pintarTono();
-  pintarAcordes();
+  pintarCapo();
   aplicarColumnas();
   pintarCifrado(actual.estructura, $('#cifrado'), semis);
   pintarOriginal();
