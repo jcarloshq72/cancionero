@@ -205,6 +205,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .item b{font-weight:600;font-size:14px}
+.art-hoja{color:var(--suave);font-weight:500;font-size:14px;margin-left:8px}
 .item .art{color:var(--lista-suave);font-size:12px}
 #lista h4{
   margin:0;padding:9px 12px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;
@@ -235,13 +236,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 /* Las acciones van pegadas al nombre, y el hueco que sobra queda detrás: asi
    el bloque nombre+herramientas se lee como una sola cosa. */
 #acciones{margin-right:auto}
-#titulo,#artista,#meta{
+#meta{
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;
+  color:var(--suave);font-size:11px;font-family:var(--mono);font-weight:500;
 }
 #app.concentracion #posicion{display:none}
-#titulo{font-size:17px;font-weight:700;letter-spacing:-.01em}
-#artista{color:var(--suave);font-size:14px}
-#meta{color:var(--suave);font-size:11px;font-family:var(--mono);font-weight:500}
 #posicion{
   color:var(--suave);font-size:11px;font-variant-numeric:tabular-nums;
   white-space:nowrap;flex:0 0 auto;
@@ -257,10 +256,10 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #cabecera .btn.activo{color:var(--acento-txt)}
 #cabecera #tono-ctrl{border-color:rgba(255,255,255,.25)}
 /* Sobre la cabecera oscura el gris de texto secundario no se lee. */
-#cabecera #artista,#cabecera #meta,#cabecera #posicion,#cabecera #vel-txt{
+#cabecera #meta,#cabecera #posicion,#cabecera #vel-txt{
   color:rgba(255,255,255,.62);
 }
-#cabecera #titulo{color:var(--barra-txt)}
+
 #velocidad{width:96px;accent-color:var(--acento)}
 #vel-txt{color:var(--suave);font-size:12px;min-width:26px;font-variant-numeric:tabular-nums}
 .sep{flex:1}
@@ -279,6 +278,19 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
    pegada al margen izquierdo de una pantalla ancha. El texto sigue alineado
    a la izquierda dentro del bloque: centrarlo destruiria la alineacion entre
    cada acorde y su silaba. */
+/* El nombre va DENTRO de la hoja, igual que el de la cancion siguiente: mismo
+   tamano, mismo peso y alineado con su propio texto, asi que comparte el
+   ancho maximo del cifrado y cambia con el. */
+#titulo-hoja{
+  margin:0 auto;padding:18px 10px 0;font-size:17px;font-weight:700;
+  color:var(--texto);letter-spacing:-.01em;max-width:62rem;
+}
+#titulo-hoja.cols-2{max-width:52rem}
+#titulo-hoja:empty{display:none}
+#titulo-hoja:not(:empty) + #cifrado{padding-top:8px}
+/* En la vista Original no: ahi el titulo viene dentro del propio documento
+   (§9.8) y se veria dos veces. */
+#app.fuente #titulo-hoja{display:none}
 #cifrado{padding:20px 10px;font-size:var(--tam);max-width:62rem;margin-inline:auto}
 /* A dos columnas NO se estira a toda la pagina: con lineas cortas las dos
    mitades quedaban lejisimos una de otra. Se acota el ancho y se junta el
@@ -407,7 +419,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
    de arriba se queda, pero solo con los controles de la cancion. */
 #app.concentracion #panel,
 #app.concentracion #meta,
-#app.concentracion #artista,
 #app.concentracion #marca,
 #app.concentracion #buscar,
 #app.concentracion #btn-nueva,
@@ -416,7 +427,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #app.concentracion #btn-lista{display:none}
 #app.concentracion #cabecera{padding:5px 12px}
 #app.concentracion #cifrado{padding:18px max(22px,5vw) 0;font-size:calc(var(--tam) * 1.15)}
-#app.concentracion #titulo{font-size:14px;font-weight:600}
+
 
 /* --- Ventanas --- */
 .velo{position:fixed;inset:0;background:rgba(10,16,20,.6);z-index:20;display:none;padding:16px}
@@ -471,6 +482,37 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .fila-grupo input:focus,#f-nuevo-grupo:focus{outline:none;border-color:var(--acento)}
 .fila-grupo .cuenta{color:var(--suave);font-size:12px;white-space:nowrap}
 #estado-grupos{color:var(--peligro);font-size:12px;padding:0 16px 8px;min-height:0}
+
+/* --- Borrado masivo --- */
+#caja-borrado{
+  background:var(--fondo);border:1px solid var(--borde);border-radius:12px;
+  width:min(620px,100%);height:min(80vh,100%);display:flex;flex-direction:column;
+  box-shadow:0 18px 50px rgba(0,0,0,.35);overflow:hidden;
+}
+#caja-borrado header,#caja-borrado footer{display:flex;gap:8px;align-items:center;padding:12px 16px}
+#caja-borrado header{border-bottom:1px solid var(--borde)}
+#caja-borrado footer{border-top:1px solid var(--borde)}
+#caja-borrado header h2{margin:0;font-size:16px;flex:1;font-weight:600}
+#filtro-borrado{
+  display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  padding:10px 16px;border-bottom:1px solid var(--borde);
+}
+#f-borrado,#f-borrado-genero{
+  padding:8px 10px;border-radius:7px;background:var(--panel);
+  border:1px solid var(--borde);color:var(--texto);font-size:14px;font-family:var(--sans);
+}
+#f-borrado{flex:1 1 160px;min-width:0}
+#f-borrado:focus,#f-borrado-genero:focus{outline:none;border-color:var(--acento)}
+#lista-borrado{overflow-y:auto;flex:1;padding:4px 0}
+.fila-borrado{display:flex;gap:10px;align-items:center;padding:7px 16px;cursor:pointer}
+.fila-borrado:hover{background:var(--panel)}
+.fila-borrado input{width:17px;height:17px;accent-color:var(--peligro);flex:0 0 auto}
+.fila-borrado .nom{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fila-borrado .gen{color:var(--suave);font-size:12px;white-space:nowrap}
+#estado-borrado{padding:0 16px 8px;font-size:12px;color:var(--peligro);min-height:0}
+#cuenta-borrado{flex:1;color:var(--suave);font-size:13px}
+#btn-borrado-ir[disabled]{opacity:.45;cursor:default}
+#btn-borrado-ir[disabled]:hover{border-color:var(--borde);color:var(--texto)}
 
 /* --- Copia de seguridad --- */
 #caja-copia{
@@ -560,7 +602,10 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   #app.viendo.con-lista #panel{display:flex}
   #app.viendo.con-lista #vista{display:none}
   #marca{display:none}
-  #titulo{font-size:15px} #artista{font-size:12px} #meta{display:none}
+  #titulo-hoja{font-size:15px;padding-top:14px} #meta{display:none}
+  /* Sin el titulo, la barra de la cancion se queda corta: la posicion a la
+     izquierda y el autoscroll con el tono al otro extremo. */
+  #encabezado{margin-right:auto}
   #cifrado{padding:12px}
   /* Dos columnas de cifrado en una pantalla estrecha no se leen: se fuerza
      una sola sin tocar lo que la cancion tiene guardado. */
@@ -573,9 +618,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
      tocar en el segundo. Las acciones sobre la hoja se van a una columna
      pegada al borde izquierdo, que fue lo que pidio el usuario. */
   #buscar{flex:1 1 140px;min-width:120px}
-  /* Aqui el nombre SI se estira y se recorta: sin eso ocupaba su ancho
-     entero y empujaba el autoscroll a un tercer renglon. */
-  #encabezado{flex:1 1 60px}
   /* En movil la biblioteca comparte el primer renglon con el buscador y la
      fila de tocar baja entera al segundo. En escritorio es al reves: los tres
      botones se quedan al borde derecho, como estaban. */
@@ -642,8 +684,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
            sobre la hoja van a la DERECHA del nombre, como pidio el usuario;
            el autoscroll y el tono quedan al otro extremo. -->
       <span id="encabezado">
-        <b id="titulo"></b>
-        <span id="artista"></span>
         <span id="meta"></span>
         <span id="posicion"></span>
       </span>
@@ -695,6 +735,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
             <button class="nav-flecha" id="btn-anterior" aria-label="Cancion anterior">&#8249;</button>
             <button class="nav-flecha" id="btn-siguiente" aria-label="Cancion siguiente">&#8250;</button>
           </div>
+          <h2 id="titulo-hoja"></h2>
           <div id="cifrado"></div>
           <pre id="fuente"></pre>
         </div>
@@ -741,8 +782,30 @@ Escribe [Coro] o CORO para separar secciones."></textarea>
     </div>
     <footer>
       <button class="btn peligro" id="btn-borrar" hidden>Borrar cancion</button>
+      <button class="btn peligro" id="btn-borrar-varias">Borrar varias...</button>
       <span id="estado"></span>
       <button class="btn" id="btn-guardar">Guardar</button>
+    </footer>
+  </div>
+</div>
+
+<div id="borrado" class="velo">
+  <div id="caja-borrado">
+    <header>
+      <h2>Borrar canciones</h2>
+      <button class="btn" id="btn-cerrar-borrado">Cerrar</button>
+    </header>
+    <div id="filtro-borrado">
+      <input id="f-borrado" type="search" placeholder="Filtrar por nombre..." autocomplete="off" aria-label="Filtrar canciones">
+      <select id="f-borrado-genero" aria-label="Filtrar por genero"></select>
+      <button class="btn" id="btn-marcar-todas">Marcar las que veo</button>
+      <button class="btn" id="btn-marcar-ninguna">Desmarcar</button>
+    </div>
+    <div id="lista-borrado"></div>
+    <div id="estado-borrado"></div>
+    <footer>
+      <span id="cuenta-borrado"></span>
+      <button class="btn peligro" id="btn-borrado-ir" disabled>Borrar</button>
     </footer>
   </div>
 </div>
@@ -1321,6 +1384,19 @@ function pintarCifrado(estructura, destino, n) {
 // La lista de acordes de la cancion se quitó de la barra: el usuario la pidió
 // fuera, y ya está a la vista en el propio cifrado. Queda el capo, que no se
 // ve en ninguna otra parte.
+// El nombre de la cancion vive en la hoja, no en la barra. El artista va
+// detras y en gris, cuando lo hay.
+function pintarTituloHoja() {
+  const caja = $('#titulo-hoja');
+  caja.textContent = actual ? actual.titulo : '';
+  if (actual && actual.artista) {
+    const art = document.createElement('span');
+    art.className = 'art-hoja';
+    art.textContent = actual.artista;
+    caja.appendChild(art);
+  }
+}
+
 function pintarCapo() {
   $('#meta').textContent = actual.capo ? 'Capo ' + actual.capo : '';
 }
@@ -1807,8 +1883,7 @@ function refrescarAbierta(datos) {
   actual = Object.assign({}, datos);
   actual.estructura = parsear(actual.contenido);
   actual.acordes = acordesUsados(actual.contenido);
-  $('#titulo').textContent = actual.titulo;
-  $('#artista').textContent = actual.artista || '';
+  pintarTituloHoja();
   pintarTono();
   pintarCapo();
   aplicarColumnas();
@@ -1944,6 +2019,7 @@ function cerrarCancion() {
   actual = null;
   semis = 0;
   $('#nada').hidden = false;
+  $('#titulo-hoja').textContent = '';
   $('#cifrado').textContent = '';
   $('#cifrado').className = '';
   $('#fuente').textContent = '';
@@ -2013,6 +2089,7 @@ function pintarSiguiente() {
 function aplicarColumnas() {
   const n = entre(parseInt(actual.columnas, 10), 1, MAX_COLUMNAS, 2);
   $('#cifrado').className = 'cols-' + n;
+  $('#titulo-hoja').className = 'cols-' + n;
   $('#btn-columnas').textContent = n + ' col';
   $('#btn-columnas').dataset.corto = n + ' col';
 }
@@ -2967,6 +3044,166 @@ $('#btn-borrar').onclick = async () => {
   cerrarCancion();
 };
 
+// ======================================================================
+//  BORRADO MASIVO
+//  Vive detras del editor, igual que el Borrar de una sola cancion: es la
+//  accion mas destructiva de la app y no puede estar a un clic de la hoja
+//  que se esta tocando. "Por partes" se resuelve filtrando; "Marcar las que
+//  veo" marca SOLO lo filtrado, asi que un genero entero se borra en dos
+//  clics sin rozar el resto.
+// ======================================================================
+const marcadas = new Set();
+
+function abrirBorrado() {
+  marcadas.clear();
+  $('#f-borrado').value = '';
+  $('#estado-borrado').textContent = '';
+  pintarGenerosBorrado();
+  pintarBorrado();
+  $('#borrado').classList.add('abierto');
+  $('#f-borrado').focus();
+}
+const cerrarBorrado = () => $('#borrado').classList.remove('abierto');
+
+function pintarGenerosBorrado() {
+  const sel = $('#f-borrado-genero');
+  const antes = sel.value;
+  sel.textContent = '';
+  const opcion = (valor, texto) => {
+    const o = document.createElement('option');
+    o.value = valor;
+    o.textContent = texto;
+    sel.appendChild(o);
+  };
+  opcion('', 'Todos los generos');
+  for (const g of generos) opcion(g.id, g.nombre);
+  if (canciones.some((c) => !c.genero_id)) opcion('sin', 'Sin genero');
+  sel.value = antes;
+  if (!sel.value) sel.value = '';
+}
+
+// Lo que se esta viendo en el dialogo. Es su propio filtro, no el de la lista
+// lateral: aqui se borra sobre el repertorio entero.
+function visiblesBorrado() {
+  const q = normalizar($('#f-borrado').value.trim());
+  const gen = $('#f-borrado-genero').value;
+  return canciones.filter((c) => {
+    if (gen === 'sin' && c.genero_id) return false;
+    if (gen && gen !== 'sin' && c.genero_id !== gen) return false;
+    return !q || normalizar([c.titulo, c.artista].filter(Boolean).join(' ')).includes(q);
+  });
+}
+
+function pintarBorrado() {
+  const caja = $('#lista-borrado');
+  caja.textContent = '';
+  const lista = visiblesBorrado();
+
+  if (!lista.length) {
+    const vacio = document.createElement('div');
+    vacio.className = 'fila-borrado';
+    vacio.textContent = 'Ninguna cancion coincide con el filtro.';
+    caja.appendChild(vacio);
+  }
+
+  const nombreGenero = new Map(generos.map((g) => [g.id, g.nombre]));
+  for (const c of lista) {
+    const fila = document.createElement('label');
+    fila.className = 'fila-borrado';
+
+    const marca = document.createElement('input');
+    marca.type = 'checkbox';
+    marca.checked = marcadas.has(c.id);
+    marca.onchange = () => {
+      if (marca.checked) marcadas.add(c.id); else marcadas.delete(c.id);
+      pintarCuentaBorrado();
+    };
+
+    const nom = document.createElement('span');
+    nom.className = 'nom';
+    nom.textContent = c.titulo;
+
+    fila.append(marca, nom);
+    if (c.genero_id && nombreGenero.has(c.genero_id)) {
+      const gen = document.createElement('span');
+      gen.className = 'gen';
+      gen.textContent = nombreGenero.get(c.genero_id);
+      fila.appendChild(gen);
+    }
+    caja.appendChild(fila);
+  }
+  pintarCuentaBorrado();
+}
+
+function pintarCuentaBorrado() {
+  const n = marcadas.size;
+  $('#cuenta-borrado').textContent = n
+    ? n + (n === 1 ? ' cancion marcada' : ' canciones marcadas')
+    : 'Marca las que quieras borrar.';
+  $('#btn-borrado-ir').disabled = !n;
+  $('#btn-borrado-ir').textContent = n > 1 ? 'Borrar las ' + n : 'Borrar';
+}
+
+async function borrarMarcadas() {
+  const ids = [...marcadas];
+  if (!ids.length || !db) return;
+  const nombres = new Map(canciones.map((c) => [c.id, c.titulo]));
+  const aviso = ids.length === 1
+    ? 'Borrar "' + nombres.get(ids[0]) + '"?'
+    : 'Borrar ' + ids.length + ' canciones?';
+  if (!confirm(aviso + ' No se puede deshacer.')) return;
+
+  // Hay que apuntarlo ANTES de borrar: el onSnapshot del almacen reacciona a
+  // cada borrado y ya cierra la cancion abierta por su cuenta, asi que
+  // despues del bucle "actual" seria null y no habria forma de saber que era
+  // la suya. Pasaba: el editor se quedaba abierto sobre una cancion muerta.
+  const cerrabaLaAbierta = !!(actual && marcadas.has(actual.id));
+  const editabaUnaBorrada = !!(editando && marcadas.has(editando));
+
+  const boton = $('#btn-borrado-ir');
+  boton.disabled = true;
+  const fallos = [];
+  let hechas = 0;
+  for (const id of ids) {
+    try {
+      await db.doc('canciones/' + id).delete();
+      hechas++;
+      marcadas.delete(id);
+      $('#estado-borrado').textContent = 'Borrando... ' + hechas + ' de ' + ids.length;
+    } catch (e) {
+      fallos.push(nombres.get(id) + ' (' + (e.code || e.message) + ')');
+    }
+  }
+
+  const borradas = new Set(ids.filter((id) => !marcadas.has(id)));
+  canciones = canciones.filter((c) => !borradas.has(c.id));
+
+  // Si la que estaba abierta o en edicion ya no existe, no se puede seguir
+  // enseniandola.
+  if (editabaUnaBorrada) cerrarEditor();
+  if (cerrabaLaAbierta) cerrarCancion();
+  else { pintarLista(); if (actual) pintarNavegacion(); }
+
+  if (fallos.length) {
+    $('#estado-borrado').textContent = 'No se pudieron borrar: ' + fallos.join(', ');
+    pintarBorrado();
+    return;
+  }
+  cerrarBorrado();
+}
+
+$('#btn-borrar-varias').onclick = abrirBorrado;
+$('#btn-cerrar-borrado').onclick = cerrarBorrado;
+$('#btn-borrado-ir').onclick = borrarMarcadas;
+$('#f-borrado').oninput = pintarBorrado;
+$('#f-borrado-genero').onchange = pintarBorrado;
+$('#btn-marcar-todas').onclick = () => {
+  for (const c of visiblesBorrado()) marcadas.add(c.id);
+  pintarBorrado();
+};
+$('#btn-marcar-ninguna').onclick = () => { marcadas.clear(); pintarBorrado(); };
+$('#borrado').onclick = (e) => { if (e.target.id === 'borrado') cerrarBorrado(); };
+
 $('#velocidad').oninput = (e) => ponerVelocidad(+e.target.value);
 
 $('#btn-cerrar').onclick = cerrarEditor;
@@ -3008,7 +3245,8 @@ document.onkeydown = (e) => {
   const escribiendo = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
 
   if (e.key === 'Escape') {
-    if ($('#copia').classList.contains('abierto')) cerrarCopia();
+    if ($('#borrado').classList.contains('abierto')) cerrarBorrado();
+    else if ($('#copia').classList.contains('abierto')) cerrarCopia();
     else if ($('#lote').classList.contains('abierto')) cerrarLote();
     else if ($('#grupos').classList.contains('abierto')) cerrarGrupos();
     else if ($('#editor').classList.contains('abierto')) cerrarEditor();
