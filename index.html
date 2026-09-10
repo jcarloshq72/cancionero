@@ -96,6 +96,31 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #cabecera{
   display:flex;gap:8px;align-items:center;flex:0 0 auto;flex-wrap:wrap;
   padding:8px 12px;background:var(--barra);color:var(--barra-txt);
+  /* Ancla de la columna de acciones del movil. */
+  position:relative;
+}
+/* UNA SOLA FILA de herramientas: lo pidio explicitamente. De 1050 px para
+   arriba la cabecera no se parte nunca; lo que cede es el buscador y el
+   nombre de la cancion, que son los dos elasticos. */
+@media (min-width:1050px){
+  #cabecera{flex-wrap:nowrap}
+  #controles{flex-wrap:nowrap}
+}
+/* Entre 1050 y 1500 la fila solo cabe apretando: fuera la marca y la lista de
+   acordes, y las acciones se quedan con su etiqueta corta. Por encima de
+   1500 se ve todo con letra entera. */
+@media (min-width:761px) and (max-width:1500px){
+  #marca{display:none}
+  #app.viendo #meta{display:none}
+  #vel-txt{display:none}
+  #acciones .btn{font-size:0;padding:6px 9px}
+  #acciones .btn::before{content:attr(data-corto);font-size:12px;font-weight:500}
+  #controles #btn-scroll{
+    font-size:0;width:34px;height:31px;padding:0;
+    display:inline-flex;align-items:center;justify-content:center;
+  }
+  #controles #btn-scroll::before{content:attr(data-corto);font-size:13px}
+  #velocidad{width:80px}
 }
 /* Los controles de la cancion viven aqui arriba: la fila del titulo queda
    limpia y la cancion se lleva todo el alto que sobra. */
@@ -115,10 +140,9 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   text-transform:uppercase;
 }
 #buscar{
-  /* Nunca por debajo de esto: con todo en una sola fila el buscador se
-     encogia hasta un boton inservible, y buscar es lo primero que hace
-     cualquiera. Antes que estrujarlo, la fila se parte en dos. */
-  flex:1 1 220px;min-width:200px;padding:9px 14px;border-radius:8px;font-family:var(--sans);
+  /* Elastico, pero con suelo: encogido a un boton de 60 px no sirve, y
+     buscar es lo primero que hace cualquiera. */
+  flex:0 1 340px;min-width:150px;padding:9px 14px;border-radius:8px;font-family:var(--sans);
   background:rgba(255,255,255,.13);border:1px solid transparent;
   color:var(--barra-txt);font-size:16px;
 }
@@ -205,7 +229,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #acciones{display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex:0 0 auto}
 #acciones .btn{padding:6px 10px}
 #encabezado{
-  display:flex;align-items:baseline;gap:8px;min-width:0;flex:1 1 240px;overflow:hidden;
+  display:flex;align-items:baseline;gap:8px;min-width:0;flex:1 1 120px;overflow:hidden;
 }
 #titulo,#artista,#meta{
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;
@@ -218,9 +242,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   color:var(--suave);font-size:11px;font-variant-numeric:tabular-nums;
   white-space:nowrap;flex:0 0 auto;
 }
-/* Renglon propio dentro de la barra oscura: asi el reparto no depende del
-   ancho de la pantalla y el buscador nunca se queda sin sitio. */
-#controles{flex-wrap:wrap;gap:6px;align-items:center;flex:1 1 100%}
+#controles{flex-wrap:wrap;gap:6px;align-items:center;flex:1 1 auto;min-width:0}
 #controles .btn{padding:6px 10px}
 /* Los botones (.btn y el tono) tienen fondo claro pero no declaran color:
    dentro de la cabecera oscura heredaban el blanco y se volvian invisibles.
@@ -525,11 +547,15 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   #panel{flex:1 1 auto}
   /* En movil la lista ocupa la pantalla entera: no hay borde que arrastrar. */
   #tirador{display:none}
-  #app.sin-lista #panel{display:flex}
   #vista{display:none}
   #app.viendo #panel{display:none}
   #app.viendo #vista{display:block}
-  #marca,#btn-lista{display:none}
+  /* Las tres rayas ENSENAN la lista aunque haya cancion abierta. Necesita mas
+     especificidad que la regla de arriba, o pierde por orden de aparicion:
+     eso era lo que hacia que el boton solo funcionase al principio. */
+  #app.viendo.con-lista #panel{display:flex}
+  #app.viendo.con-lista #vista{display:none}
+  #marca{display:none}
   #titulo{font-size:15px} #artista{font-size:12px} #meta{display:none}
   #cifrado{padding:12px}
   /* Dos columnas de cifrado en una pantalla estrecha no se leen: se fuerza
@@ -539,15 +565,44 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   #controles .btn,#tono-ctrl button,#acciones .btn{padding:5px 8px;font-size:12px}
   /* Una sola fila que se desliza: partirla en dos se comia otra franja de
      pantalla, y aqui lo que tiene que ocupar sitio es la cancion. */
-  #acciones{flex-wrap:nowrap;overflow-x:auto;gap:5px;flex:1 1 100%}
-  #acciones .btn{flex:0 0 auto}
-  /* Tres renglones con un contenido claro cada uno, en vez de que el reparto
-     lo decida el azar del ancho: volver+nombre, acciones, y tocar. */
-  #btn-volver,#encabezado{order:1}
-  #acciones{order:2}
-  #btn-scroll,#velocidad,#vel-txt,#tono-ctrl{order:3}
-  /* Y arriba, que menu, buscador, nueva, importar y tema quepan de una vez. */
-  #buscar{flex:1 1 140px;min-width:130px}
+  /* DOS renglones arriba y nada mas: buscar y biblioteca en el primero,
+     tocar en el segundo. Las acciones sobre la hoja se van a una columna
+     pegada al borde izquierdo, que fue lo que pidio el usuario. */
+  #buscar{flex:1 1 140px;min-width:120px}
+  /* En movil la biblioteca comparte el primer renglon con el buscador y la
+     fila de tocar baja entera al segundo. En escritorio es al reves: los tres
+     botones se quedan al borde derecho, como estaban. */
+  #controles{order:2}
+  /* Dos ids: la regla de arriba que pone font-size:12px a los .btn del movil
+     lleva id+clase, y con un solo id perdia. */
+  #cabecera #btn-nueva,#controles #btn-scroll{
+    font-size:0;width:36px;height:32px;padding:0;
+    display:inline-flex;align-items:center;justify-content:center;
+  }
+  #cabecera #btn-nueva::before,#controles #btn-scroll::before{
+    content:attr(data-corto);font-size:14px;
+  }
+  #vel-txt{display:none}
+  /* El deslizador solo cuando hace falta: mientras no corre el autoscroll son
+     70 px robados al nombre de la cancion, que es lo unico que hay que leer
+     de un vistazo. */
+  #controles #velocidad{display:none;width:74px}
+  #controles #btn-scroll.activo ~ #velocidad{display:inline-block}
+  #acciones{
+    position:absolute;top:100%;left:0;z-index:6;
+    flex-direction:column;flex-wrap:nowrap;gap:4px;padding:6px 0 0 3px;
+  }
+  #acciones .btn{
+    width:36px;height:31px;padding:0;font-size:0;
+    display:flex;align-items:center;justify-content:center;
+  }
+  #acciones .btn::before{content:attr(data-corto);font-size:11px;font-weight:600}
+  /* A una sola columna forzada (§5.7) el boton de columnas no cambia nada. */
+  #acciones #btn-columnas{display:none}
+  /* Sitio para la columna de acciones, sin que pise la letra ni las flechas. */
+  #app.viendo #principal{padding:0 40px}
+  #btn-anterior{left:-37px}
+  #btn-siguiente{right:-37px}
   #cabecera{padding:6px 10px;gap:6px}
   #btn-nueva{padding:7px 11px}
   #cabecera .icono{width:34px;height:34px}
@@ -572,25 +627,20 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 
 <div id="app">
   <header id="cabecera">
-    <button class="icono" id="btn-lista" title="Mostrar u ocultar la lista" aria-label="Mostrar u ocultar la lista">&#9776;</button>
+    <button class="icono" id="btn-lista" title="Ver la lista de canciones" aria-label="Ver la lista de canciones">&#9776;</button>
     <span id="marca">Cancionero</span>
     <input id="buscar" type="search" placeholder="Buscar cancion, artista o letra..." autocomplete="off" aria-label="Buscar">
-    <button id="btn-nueva">+ Nueva</button>
-    <label class="icono" id="btn-lote" for="f-lote" title="Importar varios documentos de golpe (Word o PDF)">&#8615;</label>
-    <input id="f-lote" type="file" accept=".docx,.pdf" multiple hidden>
-    <button class="icono" id="btn-tema" title="Cambiar entre claro y oscuro" aria-label="Cambiar entre claro y oscuro">&#9680;</button>
     <div id="controles">
       <!-- Renglon de la cancion: solo aparece con una abierta. Las acciones
            sobre la hoja van a la IZQUIERDA del nombre, como pidio el usuario;
            el autoscroll y el tono quedan al otro extremo. -->
-      <button class="btn" id="btn-volver" hidden>&larr;</button>
       <div id="acciones">
-        <button class="btn" id="btn-columnas" title="Columnas en las que se reparte la cancion">1 col</button>
-        <button class="btn" id="btn-fuente" title="Ver el texto tal cual vino del documento, sin interpretar acordes">Original</button>
-        <button class="btn" id="btn-menos" title="Letra mas pequena">A&minus;</button>
-        <button class="btn" id="btn-mas" title="Letra mas grande">A+</button>
-        <button class="btn" id="btn-foco">Concentracion</button>
-        <button class="btn" id="btn-editar">Editar</button>
+        <button class="btn" id="btn-columnas" data-corto="1 col" title="Columnas en las que se reparte la cancion">1 col</button>
+        <button class="btn" id="btn-fuente" data-corto="Orig" title="Ver el texto tal cual vino del documento, sin interpretar acordes">Original</button>
+        <button class="btn" id="btn-menos" data-corto="A&minus;" title="Letra mas pequena">A&minus;</button>
+        <button class="btn" id="btn-mas" data-corto="A+" title="Letra mas grande">A+</button>
+        <button class="btn" id="btn-foco" data-corto="Foco" title="Modo concentracion">Concentracion</button>
+        <button class="btn" id="btn-editar" data-corto="&#9998;" title="Editar la cancion">Editar</button>
       </div>
       <span id="encabezado">
         <b id="titulo"></b>
@@ -598,7 +648,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
         <span id="meta"></span>
         <span id="posicion"></span>
       </span>
-      <button class="btn" id="btn-scroll">&#9654; Autoscroll</button>
+      <button class="btn" id="btn-scroll" data-corto="&#9654;">&#9654; Autoscroll</button>
       <input id="velocidad" type="range" min="4" max="60" step="1" title="Velocidad del autoscroll" aria-label="Velocidad del autoscroll">
       <span id="vel-txt"></span>
       <div id="tono-ctrl">
@@ -607,6 +657,10 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
         <button id="btn-subir" title="Subir medio tono" aria-label="Subir medio tono">&#9839;</button>
       </div>
     </div>
+    <button id="btn-nueva" data-corto="&#10010;" title="Nueva cancion">+ Nueva</button>
+    <label class="icono" id="btn-lote" for="f-lote" title="Importar varios documentos de golpe (Word o PDF)">&#8615;</label>
+    <input id="f-lote" type="file" accept=".docx,.pdf" multiple hidden>
+    <button class="icono" id="btn-tema" title="Cambiar entre claro y oscuro" aria-label="Cambiar entre claro y oscuro">&#9680;</button>
   </header>
 
   <div id="sin-db"></div>
@@ -1873,6 +1927,7 @@ function abrir(id) {
   refrescarAbierta(datos);
   $('#vista').scrollTop = 0;
   app.classList.add('viendo');
+  app.classList.remove('con-lista');   // en movil, la cancion toma la pantalla
   pintarLista();
 }
 
@@ -1953,6 +2008,7 @@ function aplicarColumnas() {
   const n = entre(parseInt(actual.columnas, 10), 1, MAX_COLUMNAS, 2);
   $('#cifrado').className = 'cols-' + n;
   $('#btn-columnas').textContent = n + ' col';
+  $('#btn-columnas').dataset.corto = n + ' col';
 }
 
 async function cambiarColumnas() {
@@ -1990,6 +2046,7 @@ function alternarScroll() {
   ultimo = 0; sobrante = 0;
   rafId = requestAnimationFrame(pasoScroll);
   $('#btn-scroll').innerHTML = '&#10073;&#10073; Pausa';
+  $('#btn-scroll').dataset.corto = '\u2759\u2759';   // en movil solo cabe el simbolo
   $('#btn-scroll').classList.add('activo');
 }
 
@@ -1997,6 +2054,7 @@ function pararScroll() {
   if (rafId) cancelAnimationFrame(rafId);
   rafId = null;
   $('#btn-scroll').innerHTML = '&#9654; Autoscroll';
+  $('#btn-scroll').dataset.corto = '\u25B6';
   $('#btn-scroll').classList.remove('activo');
 }
 
@@ -2847,7 +2905,16 @@ async function importarDocx(archivo) {
 // ======================================================================
 //  CABLEADO
 // ======================================================================
-$('#buscar').oninput = pintarLista;
+$('#buscar').oninput = () => {
+  pintarLista();
+  // El orden de las flechas lo manda la lista filtrada (§9.17), asi que al
+  // cambiar el filtro hay que rehacerlas: buscando algo que dejaba una sola
+  // coincidencia se ocultaban, y al borrar la busqueda no volvian.
+  if (actual) pintarNavegacion();
+  // Buscar con una cancion abierta no servia de nada en movil: la lista
+  // estaba tapada y no se veian las coincidencias.
+  if (esMovil.matches) app.classList.toggle('con-lista', !!$('#buscar').value.trim());
+};
 $('#buscar').onkeydown = (e) => {
   if (e.key === 'Enter') {
     const halladas = filtradas();
@@ -2855,10 +2922,14 @@ $('#buscar').onkeydown = (e) => {
   }
 };
 
-$('#btn-lista').onclick = () => app.classList.toggle('sin-lista');
+// En escritorio la lista y la cancion conviven, asi que el menu la esconde.
+// En movil se turnan la pantalla, asi que el menu la ENSENA (y es tambien la
+// forma de volver: por eso no hay flecha aparte).
+$('#btn-lista').onclick = () => {
+  app.classList.toggle(esMovil.matches ? 'con-lista' : 'sin-lista');
+};
 $('#btn-tema').onclick = alternarTema;
 $('#btn-nueva').onclick = () => abrirEditor(null);
-$('#btn-volver').onclick = cerrarCancion;
 $('#btn-scroll').onclick = alternarScroll;
 $('#btn-menos').onclick = () => cambiarTam(-2);
 $('#btn-mas').onclick = () => cambiarTam(2);
@@ -2926,9 +2997,6 @@ $('#grupos').onclick = (e) => { if (e.target.id === 'grupos') cerrarGrupos(); };
 // El boton de volver solo tiene sentido en movil, donde lista y cancion se
 // turnan la pantalla.
 const esMovil = window.matchMedia('(max-width:760px)');
-const ajustarVolver = () => { $('#btn-volver').hidden = !esMovil.matches; };
-esMovil.addEventListener('change', ajustarVolver);
-ajustarVolver();
 
 document.onkeydown = (e) => {
   const escribiendo = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
