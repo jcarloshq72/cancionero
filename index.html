@@ -115,7 +115,10 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   text-transform:uppercase;
 }
 #buscar{
-  flex:1;min-width:0;padding:9px 14px;border-radius:8px;font-family:var(--sans);
+  /* Nunca por debajo de esto: con todo en una sola fila el buscador se
+     encogia hasta un boton inservible, y buscar es lo primero que hace
+     cualquiera. Antes que estrujarlo, la fila se parte en dos. */
+  flex:1 1 220px;min-width:200px;padding:9px 14px;border-radius:8px;font-family:var(--sans);
   background:rgba(255,255,255,.13);border:1px solid transparent;
   color:var(--barra-txt);font-size:16px;
 }
@@ -137,12 +140,28 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 /* --- Cuerpo --- */
 #cuerpo{flex:1;display:flex;min-height:0}
 #panel{
-  flex:0 0 268px;background:var(--lista);color:var(--lista-txt);
+  flex:0 0 var(--lista-ancho,268px);background:var(--lista);color:var(--lista-txt);
   display:flex;flex-direction:column;min-height:0;
+  /* Sin esto el panel no baja del ancho de su cabecera y el tirador parece
+     atascado a mitad de camino. */
+  min-width:0;
 }
 #app.sin-lista #panel{display:none}
+/* El borde de la lista se arrastra. Es zona de agarre, asi que mide mas de lo
+   que se ve: 7 px de raton contra una linea de 2. */
+#tirador{
+  flex:0 0 7px;cursor:col-resize;background:var(--lista);position:relative;
+  touch-action:none;
+}
+#tirador::after{
+  content:'';position:absolute;top:0;bottom:0;left:2px;width:3px;border-radius:2px;
+}
+#tirador:hover::after,#tirador.arrastrando::after{background:var(--acento)}
+#tirador:focus-visible::after{background:var(--acento)}
+#app.sin-lista #tirador,#app.concentracion #tirador{display:none}
 #lista-cabecera{
   display:flex;align-items:center;gap:8px;padding:8px 12px;flex:0 0 auto;
+  flex-wrap:wrap;row-gap:4px;
   border-bottom:1px solid rgba(255,255,255,.1);
   font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--lista-suave);
 }
@@ -180,15 +199,10 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 }
 #nada[hidden]{display:none}
 
-/* --- Barra de la cancion --- */
-/* La barra se aprieta todo lo posible: lo que tiene que ocupar espacio es la
-   cancion. Titulo, artista, acordes y controles van en UNA sola fila, que se
-   parte sola cuando no cabe. */
-#barra{
-  position:sticky;top:0;z-index:5;background:var(--fondo);
-  border-bottom:1px solid var(--borde);padding:7px 20px;
-}
-#acciones{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+/* --- Controles de la cancion --- */
+/* Todo va en la cabecera, en UNA fila que se parte sola cuando no cabe. Las
+   acciones sobre la hoja quedan a la izquierda del nombre de la cancion. */
+#acciones{display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex:0 0 auto}
 #acciones .btn{padding:6px 10px}
 #encabezado{
   display:flex;align-items:baseline;gap:8px;min-width:0;flex:1 1 240px;overflow:hidden;
@@ -204,7 +218,9 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   color:var(--suave);font-size:11px;font-variant-numeric:tabular-nums;
   white-space:nowrap;flex:0 0 auto;
 }
-#controles{flex-wrap:wrap;gap:6px;align-items:center;flex:1 1 auto}
+/* Renglon propio dentro de la barra oscura: asi el reparto no depende del
+   ancho de la pantalla y el buscador nunca se queda sin sitio. */
+#controles{flex-wrap:wrap;gap:6px;align-items:center;flex:1 1 100%}
 #controles .btn{padding:6px 10px}
 /* Los botones (.btn y el tono) tienen fondo claro pero no declaran color:
    dentro de la cabecera oscura heredaban el blanco y se volvian invisibles.
@@ -374,7 +390,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #app.concentracion #btn-lista{display:none}
 #app.concentracion #cabecera{padding:5px 12px}
 #app.concentracion #cifrado{padding:18px max(22px,5vw) 0;font-size:calc(var(--tam) * 1.15)}
-#app.concentracion #barra{padding:6px 22px}
 #app.concentracion #titulo{font-size:14px;font-weight:600}
 
 /* --- Ventanas --- */
@@ -508,12 +523,13 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 /* --- Movil --- */
 @media (max-width:760px){
   #panel{flex:1 1 auto}
+  /* En movil la lista ocupa la pantalla entera: no hay borde que arrastrar. */
+  #tirador{display:none}
   #app.sin-lista #panel{display:flex}
   #vista{display:none}
   #app.viendo #panel{display:none}
   #app.viendo #vista{display:block}
   #marca,#btn-lista{display:none}
-  #barra{padding:7px 12px}
   #titulo{font-size:15px} #artista{font-size:12px} #meta{display:none}
   #cifrado{padding:12px}
   /* Dos columnas de cifrado en una pantalla estrecha no se leen: se fuerza
@@ -523,8 +539,15 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   #controles .btn,#tono-ctrl button,#acciones .btn{padding:5px 8px;font-size:12px}
   /* Una sola fila que se desliza: partirla en dos se comia otra franja de
      pantalla, y aqui lo que tiene que ocupar sitio es la cancion. */
-  #acciones{flex-wrap:nowrap;overflow-x:auto;gap:5px}
+  #acciones{flex-wrap:nowrap;overflow-x:auto;gap:5px;flex:1 1 100%}
   #acciones .btn{flex:0 0 auto}
+  /* Tres renglones con un contenido claro cada uno, en vez de que el reparto
+     lo decida el azar del ancho: volver+nombre, acciones, y tocar. */
+  #btn-volver,#encabezado{order:1}
+  #acciones{order:2}
+  #btn-scroll,#velocidad,#vel-txt,#tono-ctrl{order:3}
+  /* Y arriba, que menu, buscador, nueva, importar y tema quepan de una vez. */
+  #buscar{flex:1 1 140px;min-width:130px}
   #cabecera{padding:6px 10px;gap:6px}
   #btn-nueva{padding:7px 11px}
   #cabecera .icono{width:34px;height:34px}
@@ -552,11 +575,23 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
     <button class="icono" id="btn-lista" title="Mostrar u ocultar la lista" aria-label="Mostrar u ocultar la lista">&#9776;</button>
     <span id="marca">Cancionero</span>
     <input id="buscar" type="search" placeholder="Buscar cancion, artista o letra..." autocomplete="off" aria-label="Buscar">
-    <!-- Lo que se usa TOCANDO (titulo, autoscroll, tono) vive aqui arriba y
-         solo aparece con una cancion abierta. Las acciones sobre la hoja
-         (columnas, tamano, editar) se quedan en la barra de abajo. -->
+    <button id="btn-nueva">+ Nueva</button>
+    <label class="icono" id="btn-lote" for="f-lote" title="Importar varios documentos de golpe (Word o PDF)">&#8615;</label>
+    <input id="f-lote" type="file" accept=".docx,.pdf" multiple hidden>
+    <button class="icono" id="btn-tema" title="Cambiar entre claro y oscuro" aria-label="Cambiar entre claro y oscuro">&#9680;</button>
     <div id="controles">
+      <!-- Renglon de la cancion: solo aparece con una abierta. Las acciones
+           sobre la hoja van a la IZQUIERDA del nombre, como pidio el usuario;
+           el autoscroll y el tono quedan al otro extremo. -->
       <button class="btn" id="btn-volver" hidden>&larr;</button>
+      <div id="acciones">
+        <button class="btn" id="btn-columnas" title="Columnas en las que se reparte la cancion">1 col</button>
+        <button class="btn" id="btn-fuente" title="Ver el texto tal cual vino del documento, sin interpretar acordes">Original</button>
+        <button class="btn" id="btn-menos" title="Letra mas pequena">A&minus;</button>
+        <button class="btn" id="btn-mas" title="Letra mas grande">A+</button>
+        <button class="btn" id="btn-foco">Concentracion</button>
+        <button class="btn" id="btn-editar">Editar</button>
+      </div>
       <span id="encabezado">
         <b id="titulo"></b>
         <span id="artista"></span>
@@ -572,10 +607,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
         <button id="btn-subir" title="Subir medio tono" aria-label="Subir medio tono">&#9839;</button>
       </div>
     </div>
-    <button id="btn-nueva">+ Nueva</button>
-    <label class="icono" id="btn-lote" for="f-lote" title="Importar varios documentos de golpe (Word o PDF)">&#8615;</label>
-    <input id="f-lote" type="file" accept=".docx,.pdf" multiple hidden>
-    <button class="icono" id="btn-tema" title="Cambiar entre claro y oscuro" aria-label="Cambiar entre claro y oscuro">&#9680;</button>
   </header>
 
   <div id="sin-db"></div>
@@ -590,19 +621,12 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
       <div id="lista"></div>
     </aside>
 
+    <div id="tirador" role="separator" aria-orientation="vertical"
+         aria-label="Ancho de la lista" tabindex="0"
+         title="Arrastra para cambiar el ancho (doble clic: por defecto)"></div>
+
     <section id="vista">
       <div id="nada">Elige una cancion de la lista para empezar.</div>
-
-      <div id="barra" hidden>
-        <div id="acciones">
-          <button class="btn" id="btn-columnas" title="Columnas en las que se reparte la cancion">1 col</button>
-          <button class="btn" id="btn-fuente" title="Ver el texto tal cual vino del documento, sin interpretar acordes">Original</button>
-          <button class="btn" id="btn-menos" title="Letra mas pequena">A&minus;</button>
-          <button class="btn" id="btn-mas" title="Letra mas grande">A+</button>
-          <button class="btn" id="btn-foco">Concentracion</button>
-          <button class="btn" id="btn-editar">Editar</button>
-        </div>
-      </div>
 
       <div id="lienzo">
         <div id="principal">
@@ -736,11 +760,14 @@ const entre = (v, min, max, x) => (Number.isFinite(v) ? Math.max(min, Math.min(m
 const VEL_MIN = 4, VEL_MAX = 60, MAX_COLUMNAS = 2;
 // Los limites se aplican AL LEER: una preferencia guardada con un rango
 // anterior dejaria la app fuera de rango para siempre.
+const LISTA_MIN = 170, LISTA_MAX = 560, LISTA_POR_DEFECTO = 268;
 const pref = {
   tam: entre(+leer1('tam', 18), 12, 40, 18),
   vel: entre(+leer1('vel', 16), VEL_MIN, VEL_MAX, 16),
+  lista: entre(+leer1('lista', LISTA_POR_DEFECTO), LISTA_MIN, LISTA_MAX, LISTA_POR_DEFECTO),
 };
 document.documentElement.style.setProperty('--tam', pref.tam + 'px');
+document.documentElement.style.setProperty('--lista-ancho', pref.lista + 'px');
 
 const nuevoId = () => (crypto.randomUUID ? crypto.randomUUID()
   : Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
@@ -1843,7 +1870,6 @@ function abrir(id) {
   semis = entre(+leer1('tono:' + id, 0), -11, 11, 0);   // cada cancion recuerda su tono
 
   $('#nada').hidden = true;
-  $('#barra').hidden = false;
   refrescarAbierta(datos);
   $('#vista').scrollTop = 0;
   app.classList.add('viendo');
@@ -1856,7 +1882,6 @@ function cerrarCancion() {
   app.classList.remove('viendo', 'concentracion');
   actual = null;
   semis = 0;
-  $('#barra').hidden = true;
   $('#nada').hidden = false;
   $('#cifrado').textContent = '';
   $('#cifrado').className = '';
@@ -1981,6 +2006,52 @@ function ponerVelocidad(v) {
   $('#vel-txt').textContent = pref.vel;
   guardar1('vel', pref.vel);
 }
+
+// ======================================================================
+//  ANCHO DE LA LISTA
+//  Es preferencia de lectura, como el tamano de letra: no toca la base, no
+//  viaja entre dispositivos y responde al instante. El limite se aplica AL
+//  LEER (arriba, en pref) para que un valor viejo no deje la lista inutil.
+// ======================================================================
+function ponerAnchoLista(px) {
+  pref.lista = entre(Math.round(px), LISTA_MIN, LISTA_MAX, LISTA_POR_DEFECTO);
+  document.documentElement.style.setProperty('--lista-ancho', pref.lista + 'px');
+}
+
+(() => {
+  const t = $('#tirador');
+  let arrastrando = false;
+  const anchoDesde = (x) => ponerAnchoLista(x - $('#panel').getBoundingClientRect().left);
+
+  t.onpointerdown = (e) => {
+    arrastrando = true;
+    t.classList.add('arrastrando');
+    t.setPointerCapture(e.pointerId);
+    e.preventDefault();          // sin esto el navegador intenta seleccionar texto
+  };
+  t.onpointermove = (e) => { if (arrastrando) anchoDesde(e.clientX); };
+  const soltar = () => {
+    if (!arrastrando) return;
+    arrastrando = false;
+    t.classList.remove('arrastrando');
+    guardar1('lista', pref.lista);
+  };
+  t.onpointerup = soltar;
+  t.onpointercancel = soltar;
+
+  t.ondblclick = () => { ponerAnchoLista(LISTA_POR_DEFECTO); guardar1('lista', pref.lista); };
+
+  // Con el teclado tambien. stopPropagation es obligatorio: las flechas del
+  // documento pasan de cancion, y aqui tienen que mover el borde.
+  t.onkeydown = (e) => {
+    const paso = e.key === 'ArrowLeft' ? -16 : e.key === 'ArrowRight' ? 16 : 0;
+    if (!paso) return;
+    e.preventDefault();
+    e.stopPropagation();
+    ponerAnchoLista(pref.lista + paso);
+    guardar1('lista', pref.lista);
+  };
+})();
 
 function cambiarTam(delta) {
   pref.tam = entre(pref.tam + delta, 12, 40, 18);
