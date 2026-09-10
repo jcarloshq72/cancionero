@@ -94,9 +94,14 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 
 /* --- Cabecera --- */
 #cabecera{
-  display:flex;gap:8px;align-items:center;flex:0 0 auto;
+  display:flex;gap:8px;align-items:center;flex:0 0 auto;flex-wrap:wrap;
   padding:8px 12px;background:var(--barra);color:var(--barra-txt);
 }
+/* Los controles de la cancion viven aqui arriba: la fila del titulo queda
+   limpia y la cancion se lleva todo el alto que sobra. */
+#controles{display:none}
+#app.viendo #controles{display:flex}
+#buscar{flex:1 1 220px}
 #cabecera .icono{
   flex:0 0 auto;width:38px;height:38px;border-radius:8px;
   background:var(--barra-btn);font-size:17px;line-height:1;cursor:pointer;
@@ -181,8 +186,10 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
    parte sola cuando no cabe. */
 #barra{
   position:sticky;top:0;z-index:5;background:var(--fondo);
-  border-bottom:1px solid var(--borde);padding:8px 20px;
+  border-bottom:1px solid var(--borde);padding:7px 20px;
 }
+#acciones{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+#acciones .btn{padding:6px 10px}
 #encabezado{
   display:flex;align-items:baseline;gap:8px;min-width:0;flex:1 1 240px;overflow:hidden;
 }
@@ -197,8 +204,13 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   color:var(--suave);font-size:11px;font-variant-numeric:tabular-nums;
   white-space:nowrap;flex:0 0 auto;
 }
-#controles{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+#controles{flex-wrap:wrap;gap:6px;align-items:center;flex:1 1 auto}
 #controles .btn{padding:6px 10px}
+/* Sobre la cabecera oscura el gris de texto secundario no se lee. */
+#cabecera #artista,#cabecera #meta,#cabecera #posicion,#cabecera #vel-txt{
+  color:rgba(255,255,255,.62);
+}
+#cabecera #titulo{color:var(--barra-txt)}
 #velocidad{width:96px;accent-color:var(--acento)}
 #vel-txt{color:var(--suave);font-size:12px;min-width:26px;font-variant-numeric:tabular-nums}
 .sep{flex:1}
@@ -299,7 +311,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
     font-size:var(--tam);
   }
   .prox-cifrado.cols-2{column-count:2;column-gap:22px}
-  #app.concentracion #siguiente{display:none}
+  /* En concentracion tambien se ven las dos: fue peticion expresa. */
 }
 #siguiente h4{
   margin:0 0 14px;font-size:17px;font-weight:700;color:var(--texto);
@@ -326,28 +338,36 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .nav-flecha{
   position:absolute;width:38px;height:68px;border-radius:10px;
   display:flex;align-items:center;justify-content:center;
-  background:var(--panel);border:1px solid var(--borde);color:var(--suave);
+  background:var(--panel);border:1.5px solid var(--acento);color:var(--acento);
   font-size:30px;line-height:1;padding-bottom:4px;
-  opacity:.35;transition:opacity .15s,color .15s,border-color .15s;
+  opacity:.8;transition:opacity .15s,background .15s,color .15s;
 }
-.nav-flecha:hover{opacity:1;color:var(--acento);border-color:var(--acento)}
+.nav-flecha:hover{opacity:1;background:var(--acento);color:var(--acento-txt)}
 #btn-anterior{left:-42px}
 #btn-siguiente{right:-42px}
 @media (max-width:760px){
   #app.viendo #principal{padding:0 34px}
-  .nav-flecha{width:28px;height:52px;font-size:22px;opacity:.5}
+  .nav-flecha{width:28px;height:52px;font-size:22px;opacity:.9}
   #btn-anterior{left:-31px}
   #btn-siguiente{right:-31px}
 }
 
 /* --- Modo concentracion --- */
-#app.concentracion #cabecera,
+/* En concentracion se va todo menos lo que hace falta para tocar: la barra
+   de arriba se queda, pero solo con los controles de la cancion. */
 #app.concentracion #panel,
 #app.concentracion #meta,
-#app.concentracion #artista{display:none}
+#app.concentracion #artista,
+#app.concentracion #marca,
+#app.concentracion #buscar,
+#app.concentracion #btn-nueva,
+#app.concentracion #btn-lote,
+#app.concentracion #btn-tema,
+#app.concentracion #btn-lista{display:none}
+#app.concentracion #cabecera{padding:5px 12px}
 #app.concentracion #cifrado{padding:18px max(22px,5vw) 0;font-size:calc(var(--tam) * 1.15)}
 #app.concentracion #barra{padding:6px 22px}
-#app.concentracion #titulo{font-size:14px;font-weight:600;color:var(--suave)}
+#app.concentracion #titulo{font-size:14px;font-weight:600}
 
 /* --- Ventanas --- */
 .velo{position:fixed;inset:0;background:rgba(10,16,20,.6);z-index:20;display:none;padding:16px}
@@ -492,7 +512,14 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
      una sola sin tocar lo que la cancion tiene guardado. */
   #cifrado.cols-2{column-count:1;column-rule:0}
   #controles{gap:5px}
-  #controles .btn,#tono-ctrl button{padding:5px 8px;font-size:12px}
+  #controles .btn,#tono-ctrl button,#acciones .btn{padding:5px 8px;font-size:12px}
+  /* Una sola fila que se desliza: partirla en dos se comia otra franja de
+     pantalla, y aqui lo que tiene que ocupar sitio es la cancion. */
+  #acciones{flex-wrap:nowrap;overflow-x:auto;gap:5px}
+  #acciones .btn{flex:0 0 auto}
+  #cabecera{padding:6px 10px;gap:6px}
+  #btn-nueva{padding:7px 11px}
+  #cabecera .icono{width:34px;height:34px}
   #btn-tono{min-width:46px}
   #velocidad{width:72px}
   #taller{flex-direction:column}
@@ -517,6 +544,26 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
     <button class="icono" id="btn-lista" title="Mostrar u ocultar la lista" aria-label="Mostrar u ocultar la lista">&#9776;</button>
     <span id="marca">Cancionero</span>
     <input id="buscar" type="search" placeholder="Buscar cancion, artista o letra..." autocomplete="off" aria-label="Buscar">
+    <!-- Lo que se usa TOCANDO (titulo, autoscroll, tono) vive aqui arriba y
+         solo aparece con una cancion abierta. Las acciones sobre la hoja
+         (columnas, tamano, editar) se quedan en la barra de abajo. -->
+    <div id="controles">
+      <button class="btn" id="btn-volver" hidden>&larr;</button>
+      <span id="encabezado">
+        <b id="titulo"></b>
+        <span id="artista"></span>
+        <span id="meta"></span>
+        <span id="posicion"></span>
+      </span>
+      <button class="btn" id="btn-scroll">&#9654; Autoscroll</button>
+      <input id="velocidad" type="range" min="4" max="60" step="1" title="Velocidad del autoscroll" aria-label="Velocidad del autoscroll">
+      <span id="vel-txt"></span>
+      <div id="tono-ctrl">
+        <button id="btn-bajar" title="Bajar medio tono" aria-label="Bajar medio tono">&#9837;</button>
+        <button id="btn-tono" title="Volver al tono original">&mdash;</button>
+        <button id="btn-subir" title="Subir medio tono" aria-label="Subir medio tono">&#9839;</button>
+      </div>
+    </div>
     <button id="btn-nueva">+ Nueva</button>
     <label class="icono" id="btn-lote" for="f-lote" title="Importar varios documentos de golpe (Word o PDF)">&#8615;</label>
     <input id="f-lote" type="file" accept=".docx,.pdf" multiple hidden>
@@ -539,22 +586,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
       <div id="nada">Elige una cancion de la lista para empezar.</div>
 
       <div id="barra" hidden>
-        <div id="controles">
-          <button class="btn" id="btn-volver" hidden>&larr;</button>
-          <span id="encabezado">
-            <b id="titulo"></b>
-            <span id="artista"></span>
-            <span id="meta"></span>
-        <span id="posicion"></span>
-          </span>
-          <button class="btn" id="btn-scroll">&#9654; Autoscroll</button>
-          <input id="velocidad" type="range" min="4" max="60" step="1" title="Velocidad del autoscroll" aria-label="Velocidad del autoscroll">
-          <span id="vel-txt"></span>
-          <div id="tono-ctrl">
-            <button id="btn-bajar" title="Bajar medio tono" aria-label="Bajar medio tono">&#9837;</button>
-            <button id="btn-tono" title="Volver al tono original">&mdash;</button>
-            <button id="btn-subir" title="Subir medio tono" aria-label="Subir medio tono">&#9839;</button>
-          </div>
+        <div id="acciones">
           <button class="btn" id="btn-columnas" title="Columnas en las que se reparte la cancion">1 col</button>
           <button class="btn" id="btn-fuente" title="Ver el texto tal cual vino del documento, sin interpretar acordes">Original</button>
           <button class="btn" id="btn-menos" title="Letra mas pequena">A&minus;</button>
