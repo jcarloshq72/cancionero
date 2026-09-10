@@ -206,6 +206,14 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 }
 #controles{flex-wrap:wrap;gap:6px;align-items:center;flex:1 1 auto}
 #controles .btn{padding:6px 10px}
+/* Los botones (.btn y el tono) tienen fondo claro pero no declaran color:
+   dentro de la cabecera oscura heredaban el blanco y se volvian invisibles.
+   Se vio en el movil: la flecha de volver era un cuadro vacio. */
+#cabecera .btn,#cabecera #tono-ctrl button{color:var(--texto)}
+#cabecera .btn:hover,#cabecera #tono-ctrl button:hover{color:var(--acento)}
+#cabecera #tono-ctrl button:hover{color:var(--acento-txt)}
+#cabecera .btn.activo{color:var(--acento-txt)}
+#cabecera #tono-ctrl{border-color:rgba(255,255,255,.25)}
 /* Sobre la cabecera oscura el gris de texto secundario no se lee. */
 #cabecera #artista,#cabecera #meta,#cabecera #posicion,#cabecera #vel-txt{
   color:rgba(255,255,255,.62);
