@@ -189,9 +189,14 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #titulo,#artista,#meta{
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;
 }
+#app.concentracion #posicion{display:none}
 #titulo{font-size:17px;font-weight:700;letter-spacing:-.01em}
 #artista{color:var(--suave);font-size:14px}
 #meta{color:var(--suave);font-size:11px;font-family:var(--mono);font-weight:500}
+#posicion{
+  color:var(--suave);font-size:11px;font-variant-numeric:tabular-nums;
+  white-space:nowrap;flex:0 0 auto;
+}
 #controles{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 #controles .btn{padding:6px 10px}
 #velocidad{width:96px;accent-color:var(--acento)}
@@ -261,9 +266,12 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   white-space:pre;overflow-x:auto;
 }
 #fuente.cols-2{
-  column-count:2;column-gap:26px;column-rule:1px solid #e2ddd2;overflow-x:visible;
+  column-count:2;column-gap:30px;column-rule:1px solid #e2ddd2;overflow-x:visible;
 }
 .orig-linea{min-height:1.35em;break-inside:avoid}
+/* Un renglon en blanco separa estrofas, pero no tiene por que ocupar una
+   linea entera: asi las columnas quedan parejas y no desperdigadas. */
+.orig-linea:empty{min-height:.65em}
 .orig-aviso{
   white-space:normal;margin:-6px 0 14px;padding:8px 10px;border-radius:6px;
   background:#efece4;color:#5a5449;font:400 12px/1.45 var(--sans);
@@ -279,32 +287,47 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 /* Debajo de 1500 px no aparece NUNCA: en movil o tablet seria apinar. */
 #siguiente{display:none}
 @media (min-width:1500px){
+  /* Se ve ENTERA y al mismo tamano que la de la izquierda: es una segunda
+     cancion de verdad, no una previsualizacion. */
   #siguiente.hay{
-    display:block;flex:0 0 34%;min-width:0;align-self:stretch;
-    border-left:1px solid var(--borde);padding:18px 22px;
-    opacity:.72;font-size:calc(var(--tam) * .82);
+    display:block;flex:1 1 44%;min-width:0;align-self:stretch;
+    border-left:1px solid var(--borde);padding:20px 22px;
+    font-size:var(--tam);
   }
-  #siguiente.hay:hover{opacity:1}
   #app.concentracion #siguiente{display:none}
 }
 #siguiente h4{
-  margin:0 0 12px;font-size:13px;font-weight:700;color:var(--acento);
-  cursor:pointer;letter-spacing:.02em;
+  margin:0 0 14px;font-size:17px;font-weight:700;color:var(--texto);
+  cursor:pointer;letter-spacing:-.01em;
 }
+#siguiente h4:hover{color:var(--acento)}
 #siguiente h4:hover{text-decoration:underline}
 #siguiente h4::before{
   content:'SIGUIENTE';display:block;font-size:9px;letter-spacing:.14em;
   color:var(--suave);margin-bottom:3px;font-weight:600;
 }
 
-/* --- Pasar de cancion -------------------------------------------------- */
-#pasar{
-  display:flex;gap:12px;align-items:center;justify-content:center;
-  padding:14px 22px 26px;
+/* --- Pasar de cancion --------------------------------------------------
+   Las flechas van pegadas a los bordes de la cancion, nunca por encima de la
+   letra. Van dentro del area que hace scroll pero en sticky con altura cero,
+   asi que se quedan quietas a media pantalla mientras la cancion se desplaza. */
+#flechas{
+  position:sticky;top:calc(50vh - 34px);height:0;z-index:8;display:none;
 }
-#pasar .btn{padding:9px 18px}
-#posicion{color:var(--suave);font-size:12px;font-variant-numeric:tabular-nums}
-#app.concentracion #pasar{padding-bottom:14px}
+#app.viendo #flechas{display:block}
+.flecha{
+  position:absolute;width:38px;height:68px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--panel);border:1px solid var(--borde);color:var(--suave);
+  font-size:30px;line-height:1;padding-bottom:4px;
+  opacity:.35;transition:opacity .15s,color .15s,border-color .15s;
+}
+.flecha:hover{opacity:1;color:var(--acento);border-color:var(--acento)}
+#btn-anterior{left:2px}
+#btn-siguiente{right:2px}
+@media (max-width:760px){
+  .flecha{width:32px;height:56px;font-size:24px;opacity:.5}
+}
 
 /* --- Modo concentracion --- */
 #app.concentracion #cabecera,
@@ -511,6 +534,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
             <b id="titulo"></b>
             <span id="artista"></span>
             <span id="meta"></span>
+        <span id="posicion"></span>
           </span>
           <button class="btn" id="btn-scroll">&#9654; Autoscroll</button>
           <input id="velocidad" type="range" min="4" max="60" step="1" title="Velocidad del autoscroll" aria-label="Velocidad del autoscroll">
@@ -531,17 +555,17 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 
       <div id="lienzo">
         <div id="principal">
+          <div id="flechas">
+            <button class="flecha" id="btn-anterior" aria-label="Cancion anterior">&#8249;</button>
+            <button class="flecha" id="btn-siguiente" aria-label="Cancion siguiente">&#8250;</button>
+          </div>
           <div id="cifrado"></div>
           <pre id="fuente"></pre>
         </div>
         <aside id="siguiente"></aside>
       </div>
 
-      <nav id="pasar" hidden>
-        <button class="btn" id="btn-anterior">&larr; Anterior</button>
-        <span id="posicion"></span>
-        <button class="btn" id="btn-siguiente">Siguiente &rarr;</button>
-      </nav>
+
     </section>
   </div>
 </div>
@@ -1688,9 +1712,19 @@ function pintarOriginal() {
   // Mismo reparto en columnas que el documento.
   caja.className = 'cols-' + entre(parseInt(actual.columnas, 10), 1, MAX_COLUMNAS, 1);
 
-  const lineas = actual.original
+  const crudas = actual.original
     .map((x) => (Array.isArray(x) ? x : (x && x.r) || []))
     .map(caracteresDeLinea);
+
+  // Word deja parrafos vacios a montones y el resultado se ve desordenado.
+  // Dos renglones en blanco seguidos no dicen mas que uno, y los del principio
+  // no dicen nada: separan de un titulo que ya no esta.
+  const lineas = [];
+  for (const cs of crudas) {
+    if (!cs.length && (!lineas.length || !lineas[lineas.length - 1].length)) continue;
+    lineas.push(cs);
+  }
+  while (lineas.length && !lineas[lineas.length - 1].length) lineas.pop();
   const textos = lineas.map((cs) => cs.map((c) => c.ch).join(''));
   const recortados = quitarSangriaComun(textos);
   lineas.forEach((cs, i) => cs.splice(0, textos[i].length - recortados[i].length));
@@ -1758,7 +1792,7 @@ function cerrarCancion() {
   $('#fuente').textContent = '';
   $('#siguiente').textContent = '';
   $('#siguiente').classList.remove('hay');
-  $('#pasar').hidden = true;
+  $('#flechas').style.display = 'none';
   pintarLista();
 }
 
@@ -1779,9 +1813,13 @@ function saltar(paso) {
 function pintarNavegacion() {
   const lista = filtradas();
   const i = indiceActual(lista);
-  const nav = $('#pasar');
-  nav.hidden = i < 0 || lista.length < 2;
-  if (nav.hidden) return;
+  const hay = i >= 0 && lista.length > 1;
+  $('#flechas').style.display = hay ? '' : 'none';
+  if (!hay) return;
+  // El nombre de la cancion a la que se va, en el globo de la flecha.
+  const nombre = (paso) => lista[(i + paso + lista.length) % lista.length].titulo;
+  $('#btn-anterior').title = nombre(-1);
+  $('#btn-siguiente').title = nombre(1);
   $('#posicion').textContent = (i + 1) + ' de ' + lista.length;
 }
 
@@ -1985,6 +2023,8 @@ function textoDeRuns(runs) {
   return juntos.map((r) => (r.b ? '**' + r.t + '**' : r.t)).join('');
 }
 
+const sinMarcas = (t) => (t || '').replace(/\*\*/g, '').trim();
+
 function esTitulo(p) {
   const pPr = hijos(p, 'pPr')[0];
   if (!pPr) return false;
@@ -2050,7 +2090,6 @@ async function leerDocx(archivo) {
   // Se recogen los renglones CON formato; el texto plano se deriva de ellos,
   // asi que las dos vistas salen exactamente del mismo recorrido.
   const renglones = [];
-  const encabezado = [];
   let titulo = '';
 
   for (const bloque of Array.from(body.children)) {
@@ -2058,10 +2097,11 @@ async function leerDocx(archivo) {
     if (bloque.localName !== 'p') continue;
     const lns = lineasDeRuns(runsDeParrafo(bloque));
     if (!titulo && esTitulo(bloque) && textoDeRuns(lns[0] || []).trim()) {
-      titulo = textoDeRuns(lns[0]).trim();
-      // Se quita del CONTENIDO, para no verlo repetido dentro de la cancion,
-      // pero se conserva en el ORIGINAL, que es una copia del documento.
-      encabezado.push(...lns, []);
+      // Sin las marcas de negrita: un encabezado de Word suele ir en negrita
+      // y el titulo saldria como "**Picaflor**".
+      titulo = sinMarcas(textoDeRuns(lns[0]));
+      // Se quita de las DOS vistas: el titulo que manda es el nombre del
+      // archivo, que ya sale en la cabecera. Repetirlo dentro solo estorba.
       continue;
     }
     renglones.push(...lns);
@@ -2070,7 +2110,7 @@ async function leerDocx(archivo) {
   // Sin estilos de encabezado, el primer renglon con texto hace de titulo.
   if (!titulo) {
     const i = renglones.findIndex((ln) => textoDeRuns(ln).trim());
-    if (i >= 0) { titulo = textoDeRuns(renglones[i]).trim(); renglones.splice(i, 1); }
+    if (i >= 0) { titulo = sinMarcas(textoDeRuns(renglones[i])); renglones.splice(i, 1); }
   }
 
   let artista = '';
@@ -2089,7 +2129,7 @@ async function leerDocx(archivo) {
     // negrita y su color. No pasa por el parser ni se usa para nada mas.
     // Cada renglon va envuelto en un objeto porque Firestore no admite un
     // array dentro de otro array. Se lee con las dos formas (ver pintarOriginal).
-    original: encabezado.concat(renglones).map((ln) => ({r: ln.map((r) => {
+    original: renglones.map((ln) => ({r: ln.map((r) => {
       const t = {t: r.t};
       if (r.b) t.b = 1;
       if (r.c) t.c = r.c;
