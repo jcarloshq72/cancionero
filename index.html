@@ -217,12 +217,12 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
    pegada al margen izquierdo de una pantalla ancha. El texto sigue alineado
    a la izquierda dentro del bloque: centrarlo destruiria la alineacion entre
    cada acorde y su silaba. */
-#cifrado{padding:20px 22px;font-size:var(--tam);max-width:62rem;margin-inline:auto}
+#cifrado{padding:20px 10px;font-size:var(--tam);max-width:62rem;margin-inline:auto}
 /* A dos columnas NO se estira a toda la pagina: con lineas cortas las dos
    mitades quedaban lejisimos una de otra. Se acota el ancho y se junta el
    hueco, y lo que sobra a la derecha lo aprovecha la cancion siguiente. */
 #cifrado.cols-2{
-  max-width:56rem;column-count:2;column-gap:26px;
+  max-width:52rem;column-count:2;column-gap:20px;
   column-rule:1px solid var(--borde);
 }
 .seccion{margin-bottom:20px}
@@ -236,6 +236,9 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
    larguisima) puede repartirse entre columnas en lugar de amontonarse toda en
    una y dejar la otra vacia. */
 .linea{margin-bottom:2px;break-inside:avoid}
+/* La estrofa entera viaja junta: un acorde y su silaba no pueden acabar en
+   columnas distintas. */
+.estrofa{break-inside:avoid}
 .linea.hueco{height:.8em}
 .seg{display:inline-block;vertical-align:bottom;white-space:pre}
 .ac{
@@ -269,6 +272,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   column-count:2;column-gap:30px;column-rule:1px solid #e2ddd2;overflow-x:visible;
 }
 .orig-linea{min-height:1.35em;break-inside:avoid}
+.orig-bloque{break-inside:avoid}
 /* Un renglon en blanco separa estrofas, pero no tiene por que ocupar una
    linea entera: asi las columnas quedan parejas y no desperdigadas. */
 .orig-linea:empty{min-height:.65em}
@@ -290,10 +294,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   /* Se ve ENTERA y al mismo tamano que la de la izquierda: es una segunda
      cancion de verdad, no una previsualizacion. */
   #siguiente.hay{
-    display:block;flex:1 1 44%;min-width:0;align-self:stretch;
-    border-left:1px solid var(--borde);padding:20px 22px;
+    display:block;flex:1 1 46%;min-width:0;align-self:stretch;
+    border-left:1px solid var(--borde);padding:20px 20px;
     font-size:var(--tam);
   }
+  .prox-cifrado.cols-2{column-count:2;column-gap:22px}
   #app.concentracion #siguiente{display:none}
 }
 #siguiente h4{
@@ -302,15 +307,15 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 }
 #siguiente h4:hover{color:var(--acento)}
 #siguiente h4:hover{text-decoration:underline}
-#siguiente h4::before{
-  content:'SIGUIENTE';display:block;font-size:9px;letter-spacing:.14em;
-  color:var(--suave);margin-bottom:3px;font-weight:600;
-}
+
 
 /* --- Pasar de cancion --------------------------------------------------
    Las flechas van pegadas a los bordes de la cancion, nunca por encima de la
    letra. Van dentro del area que hace scroll pero en sticky con altura cero,
    asi que se quedan quietas a media pantalla mientras la cancion se desplaza. */
+/* Las flechas ocupan un margen propio a cada lado (el padding de #principal),
+   asi que NUNCA se apoyan encima de la letra. */
+#app.viendo #principal{padding:0 46px}
 #flechas{
   position:sticky;top:calc(50vh - 34px);height:0;z-index:8;display:none;
 }
@@ -323,10 +328,13 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   opacity:.35;transition:opacity .15s,color .15s,border-color .15s;
 }
 .flecha:hover{opacity:1;color:var(--acento);border-color:var(--acento)}
-#btn-anterior{left:2px}
-#btn-siguiente{right:2px}
+#btn-anterior{left:-42px}
+#btn-siguiente{right:-42px}
 @media (max-width:760px){
-  .flecha{width:32px;height:56px;font-size:24px;opacity:.5}
+  #app.viendo #principal{padding:0 34px}
+  .flecha{width:28px;height:52px;font-size:22px;opacity:.5}
+  #btn-anterior{left:-31px}
+  #btn-siguiente{right:-31px}
 }
 
 /* --- Modo concentracion --- */
@@ -1119,21 +1127,32 @@ function pintarCifrado(estructura, destino, n) {
       bloque.appendChild(h);
     }
 
+    // Las lineas seguidas se agrupan en estrofas, y la estrofa entera es lo
+    // que no se puede partir. Sin esto, en dos columnas un acorde acababa al
+    // final de una columna y su letra al principio de la otra.
+    let estrofa = null;
+
     for (const linea of seccion.lineas) {
       const fila = document.createElement('div');
       const segmentos = linea.segmentos || [];
 
       if (!segmentos.length) {
         fila.className = 'linea hueco';
+        estrofa = null;
         bloque.appendChild(fila);
         continue;
+      }
+      if (!estrofa) {
+        estrofa = document.createElement('div');
+        estrofa.className = 'estrofa';
+        bloque.appendChild(estrofa);
       }
 
       // Sin acordes: texto corrido, que fluye y se ajusta al ancho.
       if (!segmentos.some((s) => s.acorde)) {
         fila.className = 'linea letra';
         for (const seg of segmentos) pintarTexto(fila, seg.texto, seg.bold);
-        bloque.appendChild(fila);
+        estrofa.appendChild(fila);
         continue;
       }
 
@@ -1163,7 +1182,7 @@ function pintarCifrado(estructura, destino, n) {
           fila.appendChild(caja);
         });
       }
-      bloque.appendChild(fila);
+      estrofa.appendChild(fila);
     }
     destino.appendChild(bloque);
   }
@@ -1427,7 +1446,9 @@ async function iniciarAlmacen() {
 
 function limpiar(datos) {
   const capo = entre(parseInt(datos.capo, 10), 0, 12, 0);
-  const columnas = entre(parseInt(datos.columnas, 10), 1, MAX_COLUMNAS, 1);
+  // Por defecto DOS columnas: es como se lee mejor una hoja de cancionero.
+  // Quien quiera una sola la cambia desde la barra o desde el editor.
+  const columnas = entre(parseInt(datos.columnas, 10), 1, MAX_COLUMNAS, 2);
   const limpio = {
     titulo: (datos.titulo || '').trim() || 'Sin titulo',
     artista: (datos.artista || '').trim(),
@@ -1597,7 +1618,7 @@ function pintarGrupos() {
     borrar.onclick = () => borrarGrupo(g, total);
 
     fila.append(campo, cuenta, borrar);
-    caja.appendChild(fila);
+    (grupo || caja).appendChild(fila);
   }
 }
 
@@ -1710,7 +1731,7 @@ function pintarOriginal() {
 
   // Formato antiguo: array de renglones. Nuevo: cada renglon en {r: [...]}.
   // Mismo reparto en columnas que el documento.
-  caja.className = 'cols-' + entre(parseInt(actual.columnas, 10), 1, MAX_COLUMNAS, 1);
+  caja.className = 'cols-' + entre(parseInt(actual.columnas, 10), 1, MAX_COLUMNAS, 2);
 
   const crudas = actual.original
     .map((x) => (Array.isArray(x) ? x : (x && x.r) || []))
@@ -1729,7 +1750,14 @@ function pintarOriginal() {
   const recortados = quitarSangriaComun(textos);
   lineas.forEach((cs, i) => cs.splice(0, textos[i].length - recortados[i].length));
 
+  let grupo = null;
   for (const cs of lineas) {
+    if (!cs.length) grupo = null;
+    else if (!grupo) {
+      grupo = document.createElement('div');
+      grupo.className = 'orig-bloque';
+      caja.appendChild(grupo);
+    }
     const fila = document.createElement('div');
     fila.className = 'orig-linea';
     let i = 0;
@@ -1840,8 +1868,10 @@ function pintarSiguiente() {
   cabecera.title = 'Abrir "' + prox.titulo + '"';
   cabecera.onclick = () => abrir(prox.id);
 
+  // Se reparte en columnas igual que la de al lado, en vez de quedar como
+  // una sola tira larguisima.
   const cuerpo = document.createElement('div');
-  cuerpo.className = 'prox-cifrado';
+  cuerpo.className = 'prox-cifrado cols-' + entre(parseInt(prox.columnas, 10), 1, MAX_COLUMNAS, 2);
   pintarCifrado(parsear(prox.contenido || ''), cuerpo, 0);
 
   caja.append(cabecera, cuerpo);
@@ -1852,14 +1882,14 @@ function pintarSiguiente() {
 // Vienen de como estaba maquetado el Word, asi que son un dato DE LA
 // CANCION (no una preferencia de lectura como el tono) y viajan en la base.
 function aplicarColumnas() {
-  const n = entre(parseInt(actual.columnas, 10), 1, MAX_COLUMNAS, 1);
+  const n = entre(parseInt(actual.columnas, 10), 1, MAX_COLUMNAS, 2);
   $('#cifrado').className = 'cols-' + n;
   $('#btn-columnas').textContent = n + ' col';
 }
 
 async function cambiarColumnas() {
   if (!actual || !db) return;
-  actual.columnas = ((entre(parseInt(actual.columnas, 10), 1, MAX_COLUMNAS, 1)) % MAX_COLUMNAS) + 1;
+  actual.columnas = ((entre(parseInt(actual.columnas, 10), 1, MAX_COLUMNAS, 2)) % MAX_COLUMNAS) + 1;
   aplicarColumnas();
   try { await db.doc('canciones/' + actual.id).update({columnas: actual.columnas}); } catch (e) {}
 }
@@ -2352,7 +2382,8 @@ async function abrirLote(archivos) {
       const r = /\.pdf$/i.test(f.archivoNombre) ? await leerPdf(f.archivo) : await leerDocx(f.archivo);
       // f.nombre NO se toca: se queda el del archivo. Sigue siendo editable.
       f.contenido = r.contenido;
-      f.columnas = r.columnas;
+      // Dos columnas por defecto, aunque el Word viniera de una sola.
+      f.columnas = Math.max(2, r.columnas || 1);
       f.original = r.original || null;
       f.acordes = acordesUsados(r.contenido).length;
       f.estado = 'listo';
@@ -2608,7 +2639,7 @@ function abrirEditor(cancion) {
   $('#f-capo').value = cancion && cancion.capo ? cancion.capo : '';
   $('#f-etiquetas').value = cancion ? (cancion.etiquetas || '') : '';
   $('#f-contenido').value = cancion ? cancion.contenido : '';
-  $('#f-columnas').value = String((cancion && cancion.columnas) || 1);
+  $('#f-columnas').value = String((cancion && cancion.columnas) || 2);
   pintarSelectGeneros(cancion ? cancion.genero_id : null);
   $('#btn-borrar').hidden = !cancion;
   aviso('');
@@ -2811,8 +2842,11 @@ document.onkeydown = (e) => {
   else if (e.key === 'f' && actual) app.classList.toggle('concentracion');
   else if (e.key === '+' || e.key === '=') cambiarTam(2);
   else if (e.key === '-') cambiarTam(-2);
-  else if (e.key === 'ArrowUp' && actual) { e.preventDefault(); cambiarTono(1); }
-  else if (e.key === 'ArrowDown' && actual) { e.preventDefault(); cambiarTono(-1); }
+  // Arriba y abajo agrandan y achican la letra. El tono se cambia con los
+  // botones de la barra, que es donde se ve lo que se esta haciendo.
+  // Solo en ordenador: en movil no hay teclado y el gesto seria un estorbo.
+  else if (e.key === 'ArrowUp' && !esMovil.matches) { e.preventDefault(); cambiarTam(2); }
+  else if (e.key === 'ArrowDown' && !esMovil.matches) { e.preventDefault(); cambiarTam(-2); }
   else if (e.key === 'ArrowLeft' && actual) { e.preventDefault(); saltar(-1); }
   else if (e.key === 'ArrowRight' && actual) { e.preventDefault(); saltar(1); }
 };
