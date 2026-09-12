@@ -1012,6 +1012,25 @@ const quitarMarcas = (t) => (t || '').replace(/\*\*/g, '');
 
 // Un acorde escrito en la columna `t.index` de su renglon ocupa cierta
 // posicion en pantalla; se busca el caracter de la letra que cae ahi.
+// Inicios de palabra de un renglon. El iman de abajo tira de ellos.
+function iniciosDePalabra(letra) {
+  return [...letra.matchAll(/\S+/g)].map((m) => m.index);
+}
+
+// Un acorde a UN solo caracter del principio de una palabra esta ahi por el
+// redondeo, no porque nadie lo quisiera en la segunda letra: el espacio del
+// Word mide media letra, asi que la posicion escrita nunca es exacta. Se le
+// devuelve a su sitio. Una silaba interior de verdad ("co-RA-zon") queda a dos
+// o mas caracteres y NO se toca: con tolerancia 2 se arrastraban todas.
+function imantar(col, palabras) {
+  let mejor = col, dist = 2;
+  for (const p of palabras) {
+    const d = Math.abs(p - col);
+    if (d <= 1 && d < dist) { dist = d; mejor = p; }
+  }
+  return mejor;
+}
+
 function recolocarAcordes(lineaAcordes, letra, fuente) {
   const tokens = [...lineaAcordes.matchAll(/\S+/g)];
   if (!tokens.length) return lineaAcordes;
@@ -1020,6 +1039,7 @@ function recolocarAcordes(lineaAcordes, letra, fuente) {
   // invencion nuestra (§9.10) y en el documento no ocupaban nada.
   const anchos = [0];
   for (let j = 1; j <= letra.length; j++) anchos.push(medirEn(letra.slice(0, j), fuente));
+  const palabras = iniciosDePalabra(letra);
 
   let salida = '';
   for (const t of tokens) {
@@ -1029,12 +1049,40 @@ function recolocarAcordes(lineaAcordes, letra, fuente) {
       const d = Math.abs(anchos[j] - x);
       if (d < mejor) { mejor = d; col = j; }
     }
+    col = imantar(col, palabras);
     // Dos acordes nunca se pegan ni se pisan.
     const minimo = salida.length + (salida ? 1 : 0);
     if (col < minimo) col = minimo;
     salida += ' '.repeat(col - salida.length) + t[0];
   }
   return salida;
+}
+
+// Solo el iman, sin medir anchos: para las canciones que ya se convirtieron
+// con la regla anterior. Trabaja en columnas de caracteres, asi que es
+// idempotente -- pasarlo dos veces no mueve nada.
+function imantarAcordes(texto) {
+  const lineas = (texto || '').split(/\r?\n/);
+  for (let i = 0; i < lineas.length - 1; i++) {
+    if (lineas[i].includes('\t') || lineas[i + 1].includes('\t')) continue;
+    const acordes = quitarMarcas(lineas[i]);
+    if (!esLineaDeAcordes(acordes)) continue;
+    const letra = quitarMarcas(lineas[i + 1]);
+    if (!letra.trim() || esLineaDeAcordes(letra) || tieneAcordesEnLinea(letra)
+        || nombreDeSeccion(letra) !== null) continue;
+
+    const palabras = iniciosDePalabra(letra);
+    let salida = '';
+    for (const t of acordes.matchAll(/\S+/g)) {
+      let col = imantar(t.index, palabras);
+      const minimo = salida.length + (salida ? 1 : 0);
+      if (col < minimo) col = minimo;
+      salida += ' '.repeat(col - salida.length) + t[0];
+    }
+    lineas[i] = salida;
+    i++;
+  }
+  return lineas.join('\n');
 }
 
 function realinearAcordes(texto, fuente) {
@@ -1824,10 +1872,13 @@ function limpiar(datos) {
     // Copia fiel del documento para la vista Original. No se deriva del
     // contenido ni se usa para parsear: es el documento, no una version.
     original: Array.isArray(datos.original) ? datos.original : null,
-    // Marca de que los acordes ya estan en columnas de caracteres. La
-    // conversion desde el ancho visual del Word NO es idempotente: sin esta
-    // marca, pasarla dos veces moveria los acordes otra vez.
-    alineado: datos.alineado ? 1 : 0,
+    // VERSION del alineado de los acordes, no una bandera:
+    //   0  nunca convertido (acordes en la posicion visual del Word)
+    //   1  convertido con la regla vieja, sin iman -- le falta el retoque
+    //   2  al dia
+    // La conversion desde el ancho del Word NO es idempotente, asi que hay
+    // que saber por donde va cada cancion.
+    alineado: entre(parseInt(datos.alineado, 10), 0, 9, 0),
     capo, columnas,
   };
   // Indice de busqueda derivado: titulo + artista + etiquetas + letra sin
@@ -2853,7 +2904,7 @@ async function guardarLote() {
         titulo: f.nombre, artista: '', tono: '', capo: 0, etiquetas: '',
         contenido: f.contenido, genero_id: f.genero_id || null,
         columnas: f.columnas, original: f.original || null,
-        alineado: 1,   // leerDocx ya lo tradujo a columnas
+        alineado: 2,   // leerDocx ya lo tradujo a columnas, con iman
       });
       f.estado = 'guardada';
       f.incluir = false;
@@ -2888,7 +2939,7 @@ const cerrarCopia = () => $('#copia').classList.remove('abierto');
 // --- Recolocar los acordes del repertorio ya cargado -------------------
 async function realinearRepertorio() {
   if (!db) { avisoCopia('Sin almacenamiento no se puede.', true); return; }
-  const pendientes = canciones.filter((c) => !c.alineado && (c.contenido || '').trim());
+  const pendientes = canciones.filter((c) => (c.alineado || 0) < 2 && (c.contenido || '').trim());
   if (!pendientes.length) { avisoCopia('Ya estaban todas recolocadas.'); return; }
   if (!confirm('Se van a recolocar los acordes de ' + pendientes.length
       + (pendientes.length === 1 ? ' cancion.' : ' canciones.')
@@ -2899,9 +2950,12 @@ async function realinearRepertorio() {
   let hechas = 0, fallos = 0;
   for (const c of pendientes) {
     try {
+      // Sin convertir, la traduccion entera. Convertida con la regla vieja,
+      // solo el retoque: su contenido ya esta en columnas y volver a medir
+      // anchos lo movería otra vez.
       await guardarCancion(c.id, Object.assign({}, c, {
-        contenido: realinearAcordes(c.contenido),
-        alineado: 1,
+        contenido: c.alineado ? imantarAcordes(c.contenido) : realinearAcordes(c.contenido),
+        alineado: 2,
       }));
       hechas++;
       avisoCopia('Recolocando... ' + hechas + ' de ' + pendientes.length);
@@ -3200,7 +3254,7 @@ async function guardar() {
     genero_id: ($('#f-genero').value === NUEVO_GENERO ? null : $('#f-genero').value) || null,
     // El cuadro de texto va en monoespaciada: la columna que se ve es la que
     // se guarda, asi que esto ya esta alineado por definicion.
-    alineado: 1,
+    alineado: 2,
     columnas: $('#f-columnas').value || 1,
   };
   if (!datos.titulo.trim()) {
