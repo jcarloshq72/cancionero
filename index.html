@@ -114,6 +114,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 @media (min-width:761px) and (max-width:1500px){
   #marca{display:none}
   #vel-txt{display:none}
+  #capo-ctrl .etiqueta{display:none}
   #acciones .btn{font-size:0;padding:6px 9px}
   #acciones .btn::before{content:attr(data-corto);font-size:12px;font-weight:500}
   #controles #btn-scroll{
@@ -236,10 +237,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 /* Las acciones van pegadas al nombre, y el hueco que sobra queda detrás: asi
    el bloque nombre+herramientas se lee como una sola cosa. */
 #acciones{margin-right:auto}
-#meta{
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;
-  color:var(--suave);font-size:11px;font-family:var(--mono);font-weight:500;
-}
 #app.concentracion #posicion{display:none}
 #posicion{
   color:var(--suave);font-size:11px;font-variant-numeric:tabular-nums;
@@ -250,13 +247,14 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 /* Los botones (.btn y el tono) tienen fondo claro pero no declaran color:
    dentro de la cabecera oscura heredaban el blanco y se volvian invisibles.
    Se vio en el movil: la flecha de volver era un cuadro vacio. */
-#cabecera .btn,#cabecera #tono-ctrl button{color:var(--texto)}
-#cabecera .btn:hover,#cabecera #tono-ctrl button:hover{color:var(--acento)}
-#cabecera #tono-ctrl button:hover{color:var(--acento-txt)}
+#cabecera .btn,#cabecera #tono-ctrl button,#cabecera #capo-ctrl button{color:var(--texto)}
+#cabecera .btn:hover,#cabecera #tono-ctrl button:hover,#cabecera #capo-ctrl button:hover{color:var(--acento)}
+#cabecera #tono-ctrl button:hover,#cabecera #capo-ctrl button:hover{color:var(--acento-txt)}
+#cabecera #btn-capo.puesta{color:var(--acento-txt)}
 #cabecera .btn.activo{color:var(--acento-txt)}
-#cabecera #tono-ctrl{border-color:rgba(255,255,255,.25)}
+#cabecera #tono-ctrl,#capo-ctrl{border-color:rgba(255,255,255,.25)}
 /* Sobre la cabecera oscura el gris de texto secundario no se lee. */
-#cabecera #meta,#cabecera #posicion,#cabecera #vel-txt{
+#cabecera #posicion,#cabecera #vel-txt{
   color:rgba(255,255,255,.62);
 }
 
@@ -264,9 +262,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #vel-txt{color:var(--suave);font-size:12px;min-width:26px;font-variant-numeric:tabular-nums}
 .sep{flex:1}
 
-#tono-ctrl{display:flex;border:1px solid var(--borde);border-radius:7px;overflow:hidden}
-#tono-ctrl button{padding:7px 11px;font-size:13px;background:var(--panel)}
-#tono-ctrl button:hover{background:var(--acento);color:var(--acento-txt)}
+#tono-ctrl,#capo-ctrl{display:flex;border:1px solid var(--borde);border-radius:7px;overflow:hidden}
+#tono-ctrl button,#capo-ctrl button{padding:7px 11px;font-size:13px;background:var(--panel)}
+#tono-ctrl button:hover,#capo-ctrl button:hover{background:var(--acento);color:var(--acento-txt)}
+#btn-capo{font-family:var(--mono);font-weight:600;min-width:54px;font-variant-numeric:tabular-nums}
+#btn-capo.puesta{color:var(--acento-txt);background:var(--acento)}
 #btn-tono{
   font-family:var(--mono);font-weight:600;min-width:56px;
   border-left:1px solid var(--borde);border-right:1px solid var(--borde);
@@ -423,7 +423,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 /* En concentracion se va todo menos lo que hace falta para tocar: la barra
    de arriba se queda, pero solo con los controles de la cancion. */
 #app.concentracion #panel,
-#app.concentracion #meta,
 #app.concentracion #marca,
 #app.concentracion #buscar,
 #app.concentracion #btn-nueva,
@@ -502,6 +501,24 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   display:flex;gap:8px;align-items:center;flex-wrap:wrap;
   padding:10px 16px;border-bottom:1px solid var(--borde);
 }
+#solo-dup{
+  display:flex;align-items:center;gap:6px;font-size:13px;color:var(--suave);
+  cursor:pointer;white-space:nowrap;
+}
+#solo-dup input{width:16px;height:16px;accent-color:var(--acento);cursor:pointer;margin:0}
+#f-borrado-asignar{
+  padding:7px 9px;border-radius:7px;background:var(--panel);
+  border:1px solid var(--borde);color:var(--texto);font-size:13px;
+  font-family:var(--sans);max-width:11rem;
+}
+#f-borrado-asignar:focus{outline:none;border-color:var(--acento)}
+#btn-asignar-genero[disabled]{opacity:.45;cursor:default}
+#btn-asignar-genero[disabled]:hover{border-color:var(--borde);color:var(--texto)}
+.fila-borrado .dup{
+  color:var(--peligro);font-size:11px;font-weight:600;white-space:nowrap;
+  border:1px solid var(--peligro);border-radius:3px;padding:1px 5px;
+}
+#caja-borrado footer{flex-wrap:wrap}
 #f-borrado,#f-borrado-genero{
   padding:8px 10px;border-radius:7px;background:var(--panel);
   border:1px solid var(--borde);color:var(--texto);font-size:14px;font-family:var(--sans);
@@ -531,6 +548,9 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #caja-copia header h2{margin:0;font-size:16px;flex:1;font-weight:600}
 #texto-copia{padding:14px 16px 4px;color:var(--suave);font-size:13px;line-height:1.55}
 #texto-copia p{margin:0}
+#texto-copia p + p{margin-top:10px}
+#pendiente-copia:empty{display:none}
+#pendiente-copia.ojo{color:var(--texto);font-weight:600}
 #estado-copia{padding:0 16px 10px;font-size:12px;color:var(--acento);min-height:0}
 #estado-copia.error{color:var(--peligro)}
 #btn-bajar-copia{background:var(--acento);color:var(--acento-txt);border-color:var(--acento);font-weight:600}
@@ -607,7 +627,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   #app.viendo.con-lista #panel{display:flex}
   #app.viendo.con-lista #vista{display:none}
   #marca{display:none}
-  #titulo-hoja{font-size:15px;padding-top:14px} #meta{display:none}
+  #titulo-hoja{font-size:15px;padding-top:14px}
+  #capo-ctrl .etiqueta{display:none}
   /* Sin el titulo, la barra de la cancion se queda corta: la posicion a la
      izquierda y el autoscroll con el tono al otro extremo. */
   #encabezado{margin-right:auto}
@@ -617,6 +638,10 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   #cifrado.cols-2{column-count:1;column-rule:0}
   #controles{gap:5px}
   #controles .btn,#tono-ctrl button,#acciones .btn{padding:5px 8px;font-size:12px}
+  /* El tono se pulsa con la guitarra colgada y sin mirar: 21x28 se quedaba
+     por debajo del minimo accesible (24) y muy lejos del comodo (44). */
+  #controles #tono-ctrl button,#controles #capo-ctrl button{height:44px;min-width:38px;padding:0 10px}
+  #btn-capo{min-width:42px}
   /* Una sola fila que se desliza: partirla en dos se comia otra franja de
      pantalla, y aqui lo que tiene que ocupar sitio es la cancion. */
   /* DOS renglones arriba y nada mas: buscar y biblioteca en el primero,
@@ -689,7 +714,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
            sobre la hoja van a la DERECHA del nombre, como pidio el usuario;
            el autoscroll y el tono quedan al otro extremo. -->
       <span id="encabezado">
-        <span id="meta"></span>
         <span id="posicion"></span>
       </span>
       <div id="acciones">
@@ -708,6 +732,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
         <button id="btn-tono" title="Volver al tono original">&mdash;</button>
         <button id="btn-subir" title="Subir medio tono" aria-label="Subir medio tono">&#9839;</button>
       </div>
+      <div id="capo-ctrl">
+        <button id="btn-capo-menos" title="Bajar la cejilla" aria-label="Bajar la cejilla">&minus;</button>
+        <button id="btn-capo" title="Cejilla. Pulsa para quitarla."><span class="etiqueta">Capo </span><span id="capo-n">&mdash;</span></button>
+        <button id="btn-capo-mas" title="Subir la cejilla" aria-label="Subir la cejilla">+</button>
+      </div>
     </div>
     <button id="btn-nueva" data-corto="&#10010;" title="Nueva cancion">+ Nueva</button>
     <label class="icono" id="btn-lote" for="f-lote" title="Importar varios documentos de golpe (Word o PDF)">&#8615;</label>
@@ -715,7 +744,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
     <button class="icono" id="btn-tema" title="Cambiar entre claro y oscuro" aria-label="Cambiar entre claro y oscuro">&#9680;</button>
   </header>
 
-  <div id="sin-db"></div>
+  <div id="sin-db" role="status" aria-live="polite"></div>
 
   <div id="cuerpo">
     <aside id="panel">
@@ -787,8 +816,8 @@ Escribe [Coro] o CORO para separar secciones."></textarea>
     </div>
     <footer>
       <button class="btn peligro" id="btn-borrar" hidden>Borrar cancion</button>
-      <button class="btn peligro" id="btn-borrar-varias">Borrar varias...</button>
-      <span id="estado"></span>
+      <button class="btn" id="btn-borrar-varias">Varias canciones...</button>
+      <span id="estado" role="status" aria-live="polite"></span>
       <button class="btn" id="btn-guardar">Guardar</button>
     </footer>
   </div>
@@ -797,7 +826,7 @@ Escribe [Coro] o CORO para separar secciones."></textarea>
 <div id="borrado" class="velo">
   <div id="caja-borrado">
     <header>
-      <h2>Borrar canciones</h2>
+      <h2>Varias canciones</h2>
       <button class="btn" id="btn-cerrar-borrado">Cerrar</button>
     </header>
     <div id="filtro-borrado">
@@ -805,11 +834,14 @@ Escribe [Coro] o CORO para separar secciones."></textarea>
       <select id="f-borrado-genero" aria-label="Filtrar por genero"></select>
       <button class="btn" id="btn-marcar-todas">Marcar las que veo</button>
       <button class="btn" id="btn-marcar-ninguna">Desmarcar</button>
+      <label id="solo-dup"><input type="checkbox" id="f-duplicadas"> Solo duplicadas</label>
     </div>
     <div id="lista-borrado"></div>
-    <div id="estado-borrado"></div>
+    <div id="estado-borrado" role="status" aria-live="polite"></div>
     <footer>
       <span id="cuenta-borrado"></span>
+      <select id="f-borrado-asignar" aria-label="Genero que se asigna a las marcadas"></select>
+      <button class="btn" id="btn-asignar-genero" disabled>Asignar genero</button>
       <button class="btn peligro" id="btn-borrado-ir" disabled>Borrar</button>
     </footer>
   </div>
@@ -822,7 +854,7 @@ Escribe [Coro] o CORO para separar secciones."></textarea>
       <button class="btn" id="btn-cerrar-grupos">Cerrar</button>
     </header>
     <div id="lista-grupos"></div>
-    <div id="estado-grupos"></div>
+    <div id="estado-grupos" role="status" aria-live="polite"></div>
     <footer>
       <input id="f-nuevo-grupo" placeholder="Nombre del nuevo genero" autocomplete="off" aria-label="Nombre del nuevo genero">
       <button class="btn" id="btn-add-grupo">Anadir</button>
@@ -840,7 +872,7 @@ Escribe [Coro] o CORO para separar secciones."></textarea>
     <footer>
       <label for="f-lote-genero" id="etiq-lote-genero">Todas en</label>
       <select id="f-lote-genero" aria-label="Genero para todas"></select>
-      <span id="estado-lote"></span>
+      <span id="estado-lote" role="status" aria-live="polite"></span>
       <button class="btn" id="btn-guardar-lote">Guardar</button>
     </footer>
   </div>
@@ -856,12 +888,13 @@ Escribe [Coro] o CORO para separar secciones."></textarea>
       <p>Un solo archivo con todo tu repertorio: canciones, generos, tonos y
       formato. Sirve para respaldarlo, para pasarlo a otro dispositivo y para
       moverlo entre esta version y cualquier otra.</p>
+      <p id="pendiente-copia"></p>
       <p><b>Recolocar acordes</b> arregla las canciones que se cargaron antes:
       Word coloca los acordes por ancho y no por columnas, asi que llegaban
       corridos a la derecha. Se pasa una sola vez por cancion. Descarga la
       copia antes, por si acaso.</p>
     </div>
-    <div id="estado-copia"></div>
+    <div id="estado-copia" role="status" aria-live="polite"></div>
     <footer>
       <button class="btn" id="btn-bajar-copia">Descargar copia</button>
       <label class="btn" for="f-copia">Restaurar desde archivo</label>
@@ -873,7 +906,6 @@ Escribe [Coro] o CORO para separar secciones."></textarea>
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 "use strict";
 
@@ -1604,8 +1636,30 @@ function pintarTituloHoja() {
   }
 }
 
+function capoDe(c) {
+  return entre(parseInt(c && c.capo, 10), 0, 12, 0);
+}
+
 function pintarCapo() {
-  $('#meta').textContent = actual.capo ? 'Capo ' + actual.capo : '';
+  const n = capoDe(actual);
+  $('#capo-n').textContent = n ? String(n) : '\u2014';
+  $('#btn-capo').classList.toggle('puesta', n > 0);
+  $('#btn-capo').title = n
+    ? 'Cejilla en el traste ' + n + '. Pulsa para quitarla.'
+    : 'Sin cejilla';
+}
+
+// La cejilla es un dato DE LA CANCION, como las columnas (§5.7): viaja en la
+// base. El tono, en cambio, es preferencia de lectura y se queda en el
+// navegador. Por eso este escribe y cambiarTono no.
+async function cambiarCapo(n) {
+  if (!actual || !db) return;
+  const antes = capoDe(actual);
+  const ahora = n === 0 ? 0 : entre(antes + n, 0, 12, 0);
+  if (ahora === antes) return;
+  actual.capo = ahora;
+  pintarCapo();
+  try { await db.doc('canciones/' + actual.id).update({capo: ahora}); } catch (e) {}
 }
 
 // ======================================================================
@@ -1780,6 +1834,14 @@ async function iniciarFirebase(cfg) {
 
   firebase.initializeApp(cfg);
 
+  // Sin esto la app abriria sin conexion pero VACIA. Tiene que pedirse antes
+  // de cualquier otra llamada a Firestore. Falla a proposito en silencio: con
+  // varias pestanas abiertas o en ventana privada el navegador la rechaza, y
+  // entonces la app funciona como siempre, solo que sin memoria sin red.
+  try {
+    await firebase.firestore().enablePersistence({synchronizeTabs: true});
+  } catch (e) { /* failed-precondition o unimplemented: se sigue igual */ }
+
   const entrar = async () => {
     try {
       await firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider());
@@ -1829,6 +1891,19 @@ function suscribir() {
     if ($('#grupos').classList.contains('abierto')) pintarGrupos();
   }, () => {});
 }
+
+// --- Que la app abra sin internet -------------------------------------
+// Las canciones estan guardadas, pero el programa que las enseña se descarga
+// de la red. Esto lo guarda la primera vez y lo sirve siempre desde ahi.
+// Dentro de claude.ai no hay donde registrarlo y falla: por eso va en
+// silencio, nunca molesta al usuario con algo que no puede arreglar.
+function guardarLaApp() {
+  if (!navigator.serviceWorker || location.protocol === 'file:') return;
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+guardarLaApp();
 
 async function iniciarAlmacen() {
   // 1. Dentro de claude.ai. Una copia de la pagina fuera del visor no tiene
@@ -2337,10 +2412,34 @@ function pasoScroll(t) {
   rafId = requestAnimationFrame(pasoScroll);
 }
 
+// --- Que no se apague la pantalla mientras corre el autoscroll --------
+// Se suelta el movil para tocar y a los 30 segundos el telefono se bloquea
+// solo, con las manos ocupadas. El navegador retira el permiso al esconder la
+// pestana, asi que hay que volver a pedirlo al volver a ella.
+let candado = null;
+
+async function pedirCandado() {
+  if (!navigator.wakeLock) return;          // navegador que no lo ofrece
+  try { candado = await navigator.wakeLock.request('screen'); }
+  catch (e) { candado = null; }             // p.ej. con la bateria muy baja
+}
+
+function soltarCandado() {
+  if (!candado) return;
+  const c = candado;
+  candado = null;
+  try { c.release(); } catch (e) {}
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && rafId) pedirCandado();
+});
+
 function alternarScroll() {
   if (rafId) { pararScroll(); return; }
   if (!actual) return;
   ultimo = 0; sobrante = 0;
+  pedirCandado();
   rafId = requestAnimationFrame(pasoScroll);
   $('#btn-scroll').innerHTML = '&#10073;&#10073; Pausa';
   $('#btn-scroll').dataset.corto = '\u2759\u2759';   // en movil solo cabe el simbolo
@@ -2350,6 +2449,7 @@ function alternarScroll() {
 function pararScroll() {
   if (rafId) cancelAnimationFrame(rafId);
   rafId = null;
+  soltarCandado();
   $('#btn-scroll').innerHTML = '&#9654; Autoscroll';
   $('#btn-scroll').dataset.corto = '\u25B6';
   $('#btn-scroll').classList.remove('activo');
@@ -2569,10 +2669,32 @@ function columnasDelDocumento(xml) {
   return entre(columnas, 1, MAX_COLUMNAS, 1);
 }
 
+// Son ~100 KB que no tiene por que pagar quien solo abre la app a tocar, que
+// es lo normal. Se descarga la primera vez que se importa un Word, igual que
+// el lector de PDF.
+let jszipListo = null;
+
+function asegurarJSZip() {
+  if (jszipListo) return jszipListo;
+  jszipListo = new Promise((resolve, reject) => {
+    if (window.JSZip) { resolve(window.JSZip); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    s.onload = () => {
+      if (window.JSZip) resolve(window.JSZip);
+      else reject(new Error('No se pudo preparar el lector de Word.'));
+    };
+    s.onerror = () => reject(new Error('No se pudo descargar el lector de Word. Comprueba la conexion.'));
+    document.head.appendChild(s);
+  });
+  return jszipListo;
+}
+
 async function leerDocx(archivo) {
+  const zipLib = await asegurarJSZip();
   let zip;
   try {
-    zip = await JSZip.loadAsync(await archivo.arrayBuffer());
+    zip = await zipLib.loadAsync(await archivo.arrayBuffer());
   } catch (e) {
     // El mensaje de la libreria es tecnico y viene en ingles.
     throw new Error('No se pudo abrir el archivo: esta danado o no es un .docx.');
@@ -2930,9 +3052,33 @@ async function guardarLote() {
 //  cambiar de dispositivo y para mudarse de la version de claude.ai a la que
 //  este alojada en la web (o al reves).
 // ======================================================================
+// Cuantas canciones han cambiado desde la ultima copia descargada. No es una
+// ventana emergente ni nada automatico: solo esta aqui, donde se viene a
+// respaldar, para que la decision siga siendo del usuario.
+function pintarPendienteDeCopia() {
+  const caja = $('#pendiente-copia');
+  const ultima = leer1('copia:hecha', '');
+  if (!ultima) {
+    caja.textContent = canciones.length
+      ? 'Todavia no has descargado ninguna copia. Ahora mismo tu repertorio vive en un solo sitio.'
+      : '';
+    caja.className = canciones.length ? 'ojo' : '';
+    return;
+  }
+  const cambiadas = canciones.filter((c) => (c.editada || '') > ultima).length;
+  const dias = Math.floor((Date.now() - new Date(ultima).getTime()) / 86400000);
+  const cuando = dias <= 0 ? 'hoy' : dias === 1 ? 'ayer' : 'hace ' + dias + ' dias';
+  caja.textContent = cambiadas
+    ? 'Ultima copia ' + cuando + '. Desde entonces has cambiado '
+      + cambiadas + (cambiadas === 1 ? ' cancion.' : ' canciones.')
+    : 'Ultima copia ' + cuando + '. No has cambiado nada desde entonces.';
+  caja.className = cambiadas ? 'ojo' : '';
+}
+
 const abrirCopia = () => {
   $('#copia').classList.add('abierto');
   avisoCopia('');
+  pintarPendienteDeCopia();
   $('#btn-salir').hidden = !window.__salirDeGoogle;
 };
 const cerrarCopia = () => $('#copia').classList.remove('abierto');
@@ -2992,7 +3138,9 @@ async function descargarCopia() {
     const descargas = (window.claude && window.claude.use) ? await window.claude.use('downloads') : null;
     if (descargas) {
       await descargas.save({filename: nombreDeCopia(), data: datos});
+      guardar1('copia:hecha', new Date().toISOString());
       avisoCopia('Copia descargada.');
+      pintarPendienteDeCopia();
       return;
     }
   } catch (e) {
@@ -3008,7 +3156,9 @@ async function descargarCopia() {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
+  guardar1('copia:hecha', new Date().toISOString());
   avisoCopia('Copia descargada.');
+  pintarPendienteDeCopia();
 }
 
 // --- Repertorio publicado junto a la app --------------------------------
@@ -3327,6 +3477,9 @@ $('#btn-mas').onclick = () => cambiarTam(2);
 $('#btn-foco').onclick = () => app.classList.toggle('concentracion');
 $('#btn-editar').onclick = () => actual && abrirEditor(actual);
 $('#btn-columnas').onclick = cambiarColumnas;
+$('#btn-capo-menos').onclick = () => cambiarCapo(-1);
+$('#btn-capo-mas').onclick = () => cambiarCapo(1);
+$('#btn-capo').onclick = () => cambiarCapo(0);
 $('#btn-fuente').onclick = alternarFuente;
 $('#btn-anterior').onclick = () => saltar(-1);
 $('#btn-siguiente').onclick = () => saltar(1);
@@ -3367,6 +3520,7 @@ function abrirBorrado() {
   $('#f-borrado').value = '';
   $('#estado-borrado').textContent = '';
   pintarGenerosBorrado();
+  pintarSelectGeneros(null, $('#f-borrado-asignar'));
   pintarBorrado();
   $('#borrado').classList.add('abierto');
   $('#f-borrado').focus();
@@ -3390,12 +3544,39 @@ function pintarGenerosBorrado() {
   if (!sel.value) sel.value = '';
 }
 
+// Dos canciones son la misma cuando coincide el titulo -- quitando el
+// "- copia" o el "(1)" que aniaden los gestores de archivos -- o cuando la
+// letra es identica caracter a caracter. Se marcan TODAS las del grupo: la
+// app no decide cual sobra, eso lo decide el usuario.
+const SUFIJO_COPIA = /\s*[-\u2013\u2014]?\s*(copia|copy)\s*\(?\d*\)?\s*$|\s*\(\d+\)\s*$/i;
+
+function idsDuplicados() {
+  const porTitulo = new Map(), porLetra = new Map();
+  const apuntar = (mapa, clave, id) => {
+    if (!clave) return;
+    if (!mapa.has(clave)) mapa.set(clave, []);
+    mapa.get(clave).push(id);
+  };
+  for (const c of canciones) {
+    apuntar(porTitulo, normalizar((c.titulo || '').replace(SUFIJO_COPIA, '')), c.id);
+    apuntar(porLetra, (c.contenido || '').replace(/\s+/g, ' ').trim(), c.id);
+  }
+  const dup = new Set();
+  for (const mapa of [porTitulo, porLetra]) {
+    for (const ids of mapa.values()) if (ids.length > 1) ids.forEach((id) => dup.add(id));
+  }
+  return dup;
+}
+
 // Lo que se esta viendo en el dialogo. Es su propio filtro, no el de la lista
-// lateral: aqui se borra sobre el repertorio entero.
+// lateral: aqui se trabaja sobre el repertorio entero.
 function visiblesBorrado() {
   const q = normalizar($('#f-borrado').value.trim());
   const gen = $('#f-borrado-genero').value;
+  const soloDup = $('#f-duplicadas').checked;
+  const dup = soloDup ? idsDuplicados() : null;
   return canciones.filter((c) => {
+    if (dup && !dup.has(c.id)) return false;
     if (gen === 'sin' && c.genero_id) return false;
     if (gen && gen !== 'sin' && c.genero_id !== gen) return false;
     return !q || normalizar([c.titulo, c.artista].filter(Boolean).join(' ')).includes(q);
@@ -3415,6 +3596,7 @@ function pintarBorrado() {
   }
 
   const nombreGenero = new Map(generos.map((g) => [g.id, g.nombre]));
+  const dup = idsDuplicados();
   for (const c of lista) {
     const fila = document.createElement('label');
     fila.className = 'fila-borrado';
@@ -3432,6 +3614,12 @@ function pintarBorrado() {
     nom.textContent = c.titulo;
 
     fila.append(marca, nom);
+    if (dup.has(c.id)) {
+      const aviso = document.createElement('span');
+      aviso.className = 'dup';
+      aviso.textContent = 'repetida';
+      fila.appendChild(aviso);
+    }
     if (c.genero_id && nombreGenero.has(c.genero_id)) {
       const gen = document.createElement('span');
       gen.className = 'gen';
@@ -3447,9 +3635,46 @@ function pintarCuentaBorrado() {
   const n = marcadas.size;
   $('#cuenta-borrado').textContent = n
     ? n + (n === 1 ? ' cancion marcada' : ' canciones marcadas')
-    : 'Marca las que quieras borrar.';
+    : 'Marca las que quieras cambiar o borrar.';
   $('#btn-borrado-ir').disabled = !n;
   $('#btn-borrado-ir').textContent = n > 1 ? 'Borrar las ' + n : 'Borrar';
+  $('#btn-asignar-genero').disabled = !n;
+}
+
+// Mandar las marcadas a un genero. Escribe SOLO ese campo: el resto de la
+// cancion no se toca, asi que no hay que reconstruir el indice de busqueda.
+async function asignarGeneroMarcadas() {
+  const ids = [...marcadas];
+  if (!ids.length || !db) return;
+  const destino = await resolverGenero($('#f-borrado-asignar'));
+  const nombre = destino
+    ? (generos.find((g) => g.id === destino) || {}).nombre
+    : 'Sin genero';
+  if (!confirm('Mandar ' + ids.length + (ids.length === 1 ? ' cancion' : ' canciones')
+      + ' a "' + nombre + '"?')) return;
+
+  const boton = $('#btn-asignar-genero');
+  boton.disabled = true;
+  let hechas = 0;
+  const fallos = [];
+  for (const id of ids) {
+    try {
+      await db.doc('canciones/' + id).update({genero_id: destino});
+      const c = canciones.find((x) => x.id === id);
+      if (c) c.genero_id = destino;
+      hechas++;
+      $('#estado-borrado').textContent = 'Asignando... ' + hechas + ' de ' + ids.length;
+    } catch (e) {
+      fallos.push((canciones.find((x) => x.id === id) || {}).titulo);
+    }
+  }
+  boton.disabled = false;
+  $('#estado-borrado').textContent = fallos.length
+    ? 'No se pudieron cambiar: ' + fallos.join(', ')
+    : hechas + (hechas === 1 ? ' cancion' : ' canciones') + ' en "' + nombre + '".';
+  marcadas.clear();
+  pintarBorrado();
+  pintarLista();
 }
 
 async function borrarMarcadas() {
@@ -3510,6 +3735,8 @@ $('#btn-marcar-todas').onclick = () => {
   pintarBorrado();
 };
 $('#btn-marcar-ninguna').onclick = () => { marcadas.clear(); pintarBorrado(); };
+$('#f-duplicadas').onchange = pintarBorrado;
+$('#btn-asignar-genero').onclick = asignarGeneroMarcadas;
 $('#borrado').onclick = (e) => { if (e.target.id === 'borrado') cerrarBorrado(); };
 
 $('#velocidad').oninput = (e) => ponerVelocidad(+e.target.value);
