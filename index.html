@@ -162,6 +162,13 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 }
 #buscar::placeholder{color:rgba(255,255,255,.58)}
 #buscar:focus{outline:none;background:rgba(255,255,255,.21);border-color:rgba(255,255,255,.4)}
+/* Solo esta mientras se pueda instalar: en cuanto lo esta, desaparece. */
+#btn-instalar{
+  flex:0 0 auto;border-color:var(--acento);color:var(--acento);font-weight:600;
+}
+#btn-instalar:hover{background:var(--acento);color:var(--acento-txt)}
+#cabecera #btn-instalar{color:var(--acento)}
+#cabecera #btn-instalar:hover{color:var(--acento-txt)}
 #btn-nueva{
   flex:0 0 auto;padding:9px 14px;border-radius:8px;font-weight:600;
   background:var(--acento);color:var(--acento-txt);
@@ -444,6 +451,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #app.concentracion #btn-nueva,
 #app.concentracion #btn-lote,
 #app.concentracion #btn-tema,
+#app.concentracion #btn-instalar,
 #app.concentracion #btn-lista{display:none}
 #app.concentracion #cabecera{padding:5px 12px}
 #app.concentracion #cifrado{padding:18px max(22px,5vw) 0;font-size:calc(var(--tam) * 1.15)}
@@ -670,11 +678,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   #controles{order:2}
   /* Dos ids: la regla de arriba que pone font-size:12px a los .btn del movil
      lleva id+clase, y con un solo id perdia. */
-  #cabecera #btn-nueva,#controles #btn-scroll{
+  #cabecera #btn-nueva,#controles #btn-scroll,#cabecera #btn-instalar{
     font-size:0;width:36px;height:32px;padding:0;
     display:inline-flex;align-items:center;justify-content:center;
   }
-  #cabecera #btn-nueva::before,#controles #btn-scroll::before{
+  #cabecera #btn-nueva::before,#controles #btn-scroll::before,#cabecera #btn-instalar::before{
     content:attr(data-corto);font-size:14px;
   }
   #vel-txt{display:none}
@@ -760,6 +768,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
     <label class="icono" id="btn-lote" for="f-lote" title="Importar varios documentos de golpe (Word o PDF)">&#8615;</label>
     <input id="f-lote" type="file" accept=".docx,.pdf" multiple hidden>
     <button class="icono" id="btn-tema" title="Cambiar entre claro y oscuro" aria-label="Cambiar entre claro y oscuro">&#9680;</button>
+    <button class="btn" id="btn-instalar" data-corto="&#8862;" hidden title="Tenerla como una app, sin barra de navegador">Instalar</button>
   </header>
 
   <div id="sin-db" role="status" aria-live="polite"></div>
@@ -1915,6 +1924,55 @@ function suscribir() {
 // de la red. Esto lo guarda la primera vez y lo sirve siempre desde ahi.
 // Dentro de claude.ai no hay donde registrarlo y falla: por eso va en
 // silencio, nunca molesta al usuario con algo que no puede arreglar.
+// --- Tenerla como una app -------------------------------------------
+// Cada navegador esconde esto en un sitio distinto, y en iPhone no existe como
+// opcion: hay que hacer el gesto de Compartir. Aqui se saca a la vista.
+let invitacion = null;
+
+const yaEsUnaApp = () =>
+  matchMedia('(display-mode: standalone)').matches
+  || matchMedia('(display-mode: minimal-ui)').matches
+  || navigator.standalone === true;
+
+// iPhone y iPad no disparan el aviso del navegador. El iPad moderno se anuncia
+// como Mac, de ahi lo de los puntos de contacto.
+const esApple = () =>
+  /iPad|iPhone|iPod/.test(navigator.userAgent)
+  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+function ofrecerInstalar() {
+  const boton = $('#btn-instalar');
+  if (!boton) return;
+  boton.hidden = yaEsUnaApp() ? true : !(invitacion || esApple());
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();            // sin esto Chrome ensena SU aviso y no el nuestro
+  invitacion = e;
+  ofrecerInstalar();
+});
+
+window.addEventListener('appinstalled', () => {
+  invitacion = null;
+  ofrecerInstalar();
+});
+
+async function instalar() {
+  if (invitacion) {
+    invitacion.prompt();
+    await invitacion.userChoice;
+    invitacion = null;           // el aviso del navegador es de un solo uso
+    ofrecerInstalar();
+    return;
+  }
+  alert('Para tenerla como una app, sin la barra del navegador:\n\n'
+    + 'iPhone o iPad (Safari): toca el boton de Compartir y luego '
+    + '"Anadir a pantalla de inicio".\n\n'
+    + 'Android (Chrome): menu de los tres puntos y "Instalar aplicacion".\n\n'
+    + 'Ordenador (Chrome o Edge): el icono de instalar, a la derecha de la '
+    + 'barra de direcciones.');
+}
+
 function guardarLaApp() {
   if (!navigator.serviceWorker || location.protocol === 'file:') return;
   window.addEventListener('load', () => {
@@ -1922,6 +1980,7 @@ function guardarLaApp() {
   });
 }
 guardarLaApp();
+ofrecerInstalar();
 
 async function iniciarAlmacen() {
   // 1. Dentro de claude.ai. Una copia de la pagina fuera del visor no tiene
@@ -3488,6 +3547,7 @@ $('#btn-lista').onclick = () => {
   app.classList.toggle(esMovil.matches ? 'con-lista' : 'sin-lista');
 };
 $('#btn-tema').onclick = alternarTema;
+$('#btn-instalar').onclick = instalar;
 $('#btn-nueva').onclick = () => abrirEditor(null);
 $('#btn-scroll').onclick = alternarScroll;
 $('#btn-menos').onclick = () => cambiarTam(-2);

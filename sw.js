@@ -22,7 +22,7 @@
  *   - Solo GET, y solo lo de arriba. Nada de interceptar las escrituras de
  *     Firestore: de su propio trabajo sin conexion se encarga el SDK.
  */
-const VERSION = 'f36340f81772';
+const VERSION = '6ae6197959b8';
 const CACHE = 'cancionero-' + VERSION;
 
 // Lo minimo para arrancar: la propia pagina y la configuracion del almacen.
