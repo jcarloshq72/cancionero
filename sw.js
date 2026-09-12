@@ -22,7 +22,7 @@
  *   - Solo GET, y solo lo de arriba. Nada de interceptar las escrituras de
  *     Firestore: de su propio trabajo sin conexion se encarga el SDK.
  */
-const VERSION = '54f5185c681a';
+const VERSION = 'f36340f81772';
 const CACHE = 'cancionero-' + VERSION;
 
 // Lo minimo para arrancar: la propia pagina y la configuracion del almacen.
@@ -88,7 +88,7 @@ self.addEventListener('fetch', (ev) => {
   if (url.startsWith(self.registration.scope)) {
     const camino = url.slice(self.registration.scope.length).split('?')[0];
     if (camino === '' || camino === 'index.html' || camino === 'firebase.json'
-        || camino === 'repertorio.json') {
+        || camino === 'repertorio.json' || camino === 'manifest.json') {
       ev.respondWith(redPrimero(req));
     }
   }
