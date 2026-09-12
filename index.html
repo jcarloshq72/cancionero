@@ -318,9 +318,14 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .ac{
   display:block;line-height:1.3;min-height:1.3em;color:var(--acento);
   font-family:var(--mono);font-weight:600;font-size:.78em;
+  /* El acorde NO ensancha la caja de su silaba: se apoya encima, como en el
+     documento, y la letra fluye igual que un parrafo normal. Sin esto, una
+     palabra mas estrecha que su acorde se estiraba y abria un hueco en mitad
+     del verso. Los choques los resuelve separarAcordes(). */
+  width:0;overflow:visible;
 }
 .tx{display:block;line-height:1.45;min-height:1.45em}
-.linea.solo-acordes .ac{padding-right:1.1em}
+.linea.solo-acordes .ac{width:auto;padding-right:1.1em}
 .linea.solo-acordes .tx{min-height:0}
 .linea.letra{line-height:1.5;white-space:pre-wrap}
 /* Negritas de la letra: en Word marcan donde cae el acento de la silaba. */
@@ -1410,6 +1415,47 @@ function pintarTexto(destino, texto, bold) {
   }
 }
 
+// Con el acorde fuera del flujo, dos acordes cuyas silabas esten muy juntas
+// podrian pisarse. Se mide la linea entera de una vez -- una lectura y una
+// escritura, sin ir y venir con el navegador -- y se empuja lo justo.
+// El empujon va en `em`: asi sigue valiendo al agrandar o achicar la letra.
+function separarAcordes(caja) {
+  const HUECO = 6;   // px de aire minimo entre dos acordes seguidos
+  for (const fila of caja.querySelectorAll('.linea')) {
+    if (fila.classList.contains('solo-acordes')) continue;
+
+    const conAcorde = [];
+    for (const seg of fila.querySelectorAll('.seg')) {
+      const ac = seg.firstChild;
+      if (ac && ac.textContent.trim()) conAcorde.push({seg, ac});
+    }
+    if (conAcorde.length < 2) continue;
+
+    // 1. Leer. scrollWidth da el ancho del texto aunque la caja mida cero.
+    const medidas = conAcorde.map(({seg, ac}) => {
+      const r = seg.getBoundingClientRect();
+      return {izq: r.left, arriba: Math.round(r.top), ancho: ac.scrollWidth};
+    });
+
+    // 2. Calcular, arrastrando lo ya empujado.
+    const pt = parseFloat(getComputedStyle(fila).fontSize) || 16;
+    const empujes = new Array(conAcorde.length).fill(0);
+    let corrido = 0;
+    for (let i = 0; i < medidas.length - 1; i++) {
+      const a = medidas[i], b = medidas[i + 1];
+      // Si ya cayeron en renglones distintos no hay nada que separar.
+      if (b.arriba !== a.arriba) { corrido = 0; continue; }
+      const falta = (a.izq + corrido + a.ancho + HUECO) - (b.izq + corrido);
+      if (falta > 0) { empujes[i] = falta; corrido += falta; }
+    }
+
+    // 3. Escribir.
+    conAcorde.forEach(({seg}, i) => {
+      seg.style.paddingRight = empujes[i] ? (empujes[i] / pt).toFixed(3) + 'em' : '';
+    });
+  }
+}
+
 function pintarCifrado(estructura, destino, n) {
   const bemoles = n ? usarBemoles() : false;
   destino.textContent = '';
@@ -1491,6 +1537,7 @@ function pintarCifrado(estructura, destino, n) {
     }
     destino.appendChild(bloque);
   }
+  separarAcordes(destino);
 }
 
 // La lista de acordes de la cancion se quitó de la barra: el usuario la pidió
