@@ -55,7 +55,12 @@ self.addEventListener('activate', (ev) => {
 async function redPrimero(req) {
   const cache = await caches.open(CACHE);
   try {
-    const res = await fetch(req);
+    // `cache: 'reload'` salta la cache HTTP del navegador. Hace falta porque
+    // GitHub Pages manda `Cache-Control: max-age=600`: sin esto, durante diez
+    // minutos despues de publicar el navegador seguiria dando la version
+    // vieja aunque aqui se pida por red. Se pide por URL y no con el propio
+    // `req` porque una peticion de navegacion no se puede reconstruir.
+    const res = await fetch(req.url, {cache: 'reload', credentials: 'same-origin'});
     if (res && res.ok) cache.put(req, res.clone());
     return res;
   } catch (e) {
