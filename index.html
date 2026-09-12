@@ -650,6 +650,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
      eso era lo que hacia que el boton solo funcionase al principio. */
   #app.viendo.con-lista #panel{display:flex}
   #app.viendo.con-lista #vista{display:none}
+  /* La columna de acciones FLOTA sobre lo que hay debajo (position:absolute),
+     asi que al abrir la lista le tapaba las primeras filas -- los generos y
+     las dos primeras canciones. Mientras se elige cancion no pinta nada: son
+     acciones sobre la hoja, y no hay hoja delante. */
+  #app.viendo.con-lista #acciones{display:none}
   #marca{display:none}
   #titulo-hoja{font-size:15px;padding-top:14px}
   #capo-ctrl .etiqueta{display:none}
