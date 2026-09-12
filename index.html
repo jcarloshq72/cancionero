@@ -851,12 +851,17 @@ Escribe [Coro] o CORO para separar secciones."></textarea>
       <p>Un solo archivo con todo tu repertorio: canciones, generos, tonos y
       formato. Sirve para respaldarlo, para pasarlo a otro dispositivo y para
       moverlo entre esta version y cualquier otra.</p>
+      <p><b>Recolocar acordes</b> arregla las canciones que se cargaron antes:
+      Word coloca los acordes por ancho y no por columnas, asi que llegaban
+      corridos a la derecha. Se pasa una sola vez por cancion. Descarga la
+      copia antes, por si acaso.</p>
     </div>
     <div id="estado-copia"></div>
     <footer>
       <button class="btn" id="btn-bajar-copia">Descargar copia</button>
       <label class="btn" for="f-copia">Restaurar desde archivo</label>
       <button class="btn" id="btn-traer">Traer del sitio</button>
+      <button class="btn" id="btn-realinear">Recolocar acordes</button>
       <button class="btn" id="btn-salir" hidden>Cerrar sesion</button>
       <input id="f-copia" type="file" accept=".json,application/json" hidden>
     </footer>
@@ -968,6 +973,105 @@ function nombreDeSeccion(linea) {
 // Empareja la fila de acordes con la letra de debajo por posicion de
 // columna. El resultado ya viene troceado, asi que el navegador no necesita
 // fuente monoespaciada para alinear.
+// ======================================================================
+//  REALINEAR LOS ACORDES DE UN DOCUMENTO
+//  Word no alinea por columnas de caracteres: alinea por ANCHO, y en una
+//  tipografia proporcional el espacio mide poco mas de la mitad que una letra
+//  (Calibri 11: 3,31 px contra 5,84). Quien escribe la hoja empuja el acorde
+//  a ojo hasta que se ve encima de su silaba, asi que acaba escribiendo casi
+//  el doble de espacios de los que hay caracteres.
+//
+//  El resto de la app cuenta COLUMNAS DE CARACTERES -- es lo que produce el
+//  lector de PDF (§9.7) y lo que se escribe a mano en el editor -- asi que la
+//  traduccion se hace aqui, una sola vez, al importar. Se mide con la fuente
+//  del propio documento: si el documento ya venia en monoespaciada, la
+//  traduccion es la identidad y no cambia nada.
+// ======================================================================
+const medirEn = (() => {
+  const ctx = document.createElement('canvas').getContext('2d');
+  let puesta = '';
+  return (texto, fuente) => {
+    if (fuente !== puesta) { ctx.font = fuente; puesta = fuente; }
+    return ctx.measureText(texto).width;
+  };
+})();
+
+function fuenteCss(nombre, puntos) {
+  const limpio = /^[\w .-]{1,40}$/.test(nombre || '') ? nombre : 'Calibri';
+  const pt = puntos >= 4 && puntos <= 96 ? puntos : 11;
+  return pt + 'pt "' + limpio + '", Calibri, Carlito, Arial, sans-serif';
+}
+
+// sinMarcas() hace trim(), y aqui la sangria es justo lo que se esta midiendo.
+const quitarMarcas = (t) => (t || '').replace(/\*\*/g, '');
+
+// Un acorde escrito en la columna `t.index` de su renglon ocupa cierta
+// posicion en pantalla; se busca el caracter de la letra que cae ahi.
+function recolocarAcordes(lineaAcordes, letra, fuente) {
+  const tokens = [...lineaAcordes.matchAll(/\S+/g)];
+  if (!tokens.length) return lineaAcordes;
+
+  // Los anchos se miden sobre el texto SIN las marcas de negrita: son
+  // invencion nuestra (§9.10) y en el documento no ocupaban nada.
+  const anchos = [0];
+  for (let j = 1; j <= letra.length; j++) anchos.push(medirEn(letra.slice(0, j), fuente));
+
+  let salida = '';
+  for (const t of tokens) {
+    const x = medirEn(lineaAcordes.slice(0, t.index), fuente);
+    let col = 0, mejor = Infinity;
+    for (let j = 0; j < anchos.length; j++) {
+      const d = Math.abs(anchos[j] - x);
+      if (d < mejor) { mejor = d; col = j; }
+    }
+    // Dos acordes nunca se pegan ni se pisan.
+    const minimo = salida.length + (salida ? 1 : 0);
+    if (col < minimo) col = minimo;
+    salida += ' '.repeat(col - salida.length) + t[0];
+  }
+  return salida;
+}
+
+function realinearAcordes(texto, fuente) {
+  const f = fuente || fuenteCss('Calibri', 11);
+  const lineas = (texto || '').split(/\r?\n/);
+
+  for (let i = 0; i < lineas.length - 1; i++) {
+    // Con tabuladores manda la parada de tabulacion de Word, que es otro
+    // mecanismo: de esos se encarga expandirTabs y aqui no se tocan.
+    if (lineas[i].includes('\t') || lineas[i + 1].includes('\t')) continue;
+
+    const acordes = quitarMarcas(lineas[i]);
+    if (!esLineaDeAcordes(acordes)) continue;
+
+    const letra = quitarMarcas(lineas[i + 1]);
+    if (!letra.trim() || esLineaDeAcordes(letra) || tieneAcordesEnLinea(letra)
+        || nombreDeSeccion(letra) !== null) continue;
+
+    // La linea de acordes sale sin marcas: en el Word van en negrita, pero un
+    // acorde ya se pinta distinto y esa negrita no dice nada.
+    lineas[i] = recolocarAcordes(acordes, letra, f);
+    i++;   // la letra ya esta emparejada
+  }
+  return lineas.join('\n');
+}
+
+// La fuente que manda en el documento, para medir como medía Word.
+function fuenteDelDocumento(renglones) {
+  const cuenta = new Map();
+  for (const ln of renglones) {
+    for (const r of ln) {
+      if (!(r.t || '').trim()) continue;
+      const clave = (r.f || 'Calibri') + '|' + (r.s || 11);
+      cuenta.set(clave, (cuenta.get(clave) || 0) + r.t.length);
+    }
+  }
+  let mejor = 'Calibri|11', veces = -1;
+  for (const [clave, n] of cuenta) if (n > veces) { veces = n; mejor = clave; }
+  const [nombre, pt] = mejor.split('|');
+  return fuenteCss(nombre, parseFloat(pt));
+}
+
 // --- NEGRITAS ----------------------------------------------------------
 // En Word el usuario marca en negrita la silaba donde cae el acento, y eso es
 // informacion musical que hay que conservar. Viaja dentro del propio texto
@@ -1673,6 +1777,10 @@ function limpiar(datos) {
     // Copia fiel del documento para la vista Original. No se deriva del
     // contenido ni se usa para parsear: es el documento, no una version.
     original: Array.isArray(datos.original) ? datos.original : null,
+    // Marca de que los acordes ya estan en columnas de caracteres. La
+    // conversion desde el ancho visual del Word NO es idempotente: sin esta
+    // marca, pasarla dos veces moveria los acordes otra vez.
+    alineado: datos.alineado ? 1 : 0,
     capo, columnas,
   };
   // Indice de busqueda derivado: titulo + artista + etiquetas + letra sin
@@ -2411,12 +2519,15 @@ async function leerDocx(archivo) {
   if (m) { titulo = m[1].trim(); artista = m[2].trim(); }
 
   const lineas = renglones.map((ln) => textoDeRuns(ln).replace(/\s+$/, ''));
+  const crudo = lineas.join('\n').replace(/^\n+|\n+$/g, '').replace(/\n{3,}/g, '\n\n');
 
   return {
     titulo: titulo || 'Sin titulo',
     artista,
     // Tres o mas saltos seguidos se quedan en dos: Word abusa de parrafos vacios.
-    contenido: lineas.join('\n').replace(/^\n+|\n+$/g, '').replace(/\n{3,}/g, '\n\n'),
+    // Y los acordes pasan de la posicion VISUAL del Word a columnas de
+    // caracteres, que es lo que cuenta el resto de la app.
+    contenido: realinearAcordes(crudo, fuenteDelDocumento(renglones)),
     columnas: columnasDelDocumento(xml),
     // Copia fiel para la vista Original: cada renglon con sus trozos, su
     // negrita y su color. No pasa por el parser ni se usa para nada mas.
@@ -2695,6 +2806,7 @@ async function guardarLote() {
         titulo: f.nombre, artista: '', tono: '', capo: 0, etiquetas: '',
         contenido: f.contenido, genero_id: f.genero_id || null,
         columnas: f.columnas, original: f.original || null,
+        alineado: 1,   // leerDocx ya lo tradujo a columnas
       });
       f.estado = 'guardada';
       f.incluir = false;
@@ -2726,6 +2838,35 @@ const abrirCopia = () => {
   $('#btn-salir').hidden = !window.__salirDeGoogle;
 };
 const cerrarCopia = () => $('#copia').classList.remove('abierto');
+// --- Recolocar los acordes del repertorio ya cargado -------------------
+async function realinearRepertorio() {
+  if (!db) { avisoCopia('Sin almacenamiento no se puede.', true); return; }
+  const pendientes = canciones.filter((c) => !c.alineado && (c.contenido || '').trim());
+  if (!pendientes.length) { avisoCopia('Ya estaban todas recolocadas.'); return; }
+  if (!confirm('Se van a recolocar los acordes de ' + pendientes.length
+      + (pendientes.length === 1 ? ' cancion.' : ' canciones.')
+      + '\n\nSi quieres poder volver atras, descarga antes la copia.\n\nContinuar?')) return;
+
+  const boton = $('#btn-realinear');
+  boton.disabled = true;
+  let hechas = 0, fallos = 0;
+  for (const c of pendientes) {
+    try {
+      await guardarCancion(c.id, Object.assign({}, c, {
+        contenido: realinearAcordes(c.contenido),
+        alineado: 1,
+      }));
+      hechas++;
+      avisoCopia('Recolocando... ' + hechas + ' de ' + pendientes.length);
+    } catch (e) {
+      fallos++;
+    }
+  }
+  boton.disabled = false;
+  avisoCopia(hechas + (hechas === 1 ? ' cancion recolocada' : ' canciones recolocadas')
+    + (fallos ? ', ' + fallos + ' no se pudieron' : '') + '.', !!fallos);
+}
+
 const avisoCopia = (t, esError) => {
   $('#estado-copia').textContent = t;
   $('#estado-copia').className = esError ? 'error' : '';
@@ -3010,6 +3151,9 @@ async function guardar() {
     // Nunca el centinela: si el cuadro de texto se cancelo, el desplegable
     // vuelve solo, pero guardar no puede depender de eso.
     genero_id: ($('#f-genero').value === NUEVO_GENERO ? null : $('#f-genero').value) || null,
+    // El cuadro de texto va en monoespaciada: la columna que se ve es la que
+    // se guarda, asi que esto ya esta alineado por definicion.
+    alineado: 1,
     columnas: $('#f-columnas').value || 1,
   };
   if (!datos.titulo.trim()) {
@@ -3291,6 +3435,7 @@ $('#lote').onclick = (e) => { if (e.target.id === 'lote') cerrarLote(); };
 $('#btn-copia').onclick = abrirCopia;
 $('#btn-cerrar-copia').onclick = cerrarCopia;
 $('#btn-bajar-copia').onclick = descargarCopia;
+$('#btn-realinear').onclick = realinearRepertorio;
 $('#btn-traer').onclick = traerDelSitio;
 $('#btn-salir').onclick = () => window.__salirDeGoogle && window.__salirDeGoogle();
 $('#f-copia').onchange = (e) => restaurarCopia(e.target.files[0]);
