@@ -1358,6 +1358,14 @@ function pintarCifrado(estructura, destino, n) {
         // Se trocea palabra a palabra para que la linea pueda partirse en
         // pantallas estrechas sin romper la alineacion acorde/silaba.
         const trozos = (seg.texto || '').match(/\S+\s*|\s+/g) || [''];
+        // El acorde se cuelga del primer trozo CON LETRA, no del primero a
+        // secas. Cuando su columna caia en el espacio entre dos palabras, ese
+        // espacio era el primer trozo y el acorde lo ensanchaba hasta su
+        // propio ancho: un hueco falso en la letra, el acorde sobre nada y
+        // todos los acordes siguientes de la linea corridos a la derecha.
+        // Si el segmento entero es blanco (intros) se queda en el primero.
+        let conAcorde = trozos.findIndex((t) => t.trim());
+        if (conAcorde < 0) conAcorde = 0;
         let off = 0;
         trozos.forEach((trozo, i) => {
           const bold = seg.bold ? seg.bold.slice(off, off + trozo.length) : null;
@@ -1367,7 +1375,7 @@ function pintarCifrado(estructura, destino, n) {
           caja.className = 'seg';
           const ac = document.createElement('span');
           ac.className = 'ac';
-          ac.textContent = i === 0 && acorde ? acorde + ' ' : '';
+          ac.textContent = i === conAcorde && acorde ? acorde + ' ' : '';
           const tx = document.createElement('span');
           tx.className = 'tx';
           pintarTexto(tx, trozo, bold && bold.some(Boolean) ? bold : null);
@@ -2583,7 +2591,10 @@ function pintarLote() {
     genero.setAttribute('aria-label', 'Genero de ' + f.nombre);
     genero.disabled = f.estado !== 'listo';
     pintarSelectGeneros(f.genero_id || null, genero);
-    genero.onchange = () => { f.genero_id = genero.value || null; };
+    genero.onchange = async () => {
+      f.genero_id = await resolverGenero(genero);
+      pintarLote();   // el genero nuevo tiene que salir en TODOS los desplegables
+    };
 
     const marca = document.createElement('span');
     if (f.estado === 'leyendo') { marca.className = 'marca'; marca.textContent = 'Leyendo...'; }
@@ -2869,6 +2880,10 @@ async function restaurarCopia(archivo) {
 // ======================================================================
 //  EDITOR
 // ======================================================================
+// Valor centinela de la ultima opcion. No puede chocar con un id: los ids son
+// uuid y nunca empiezan por dos guiones bajos.
+const NUEVO_GENERO = '__nuevo__';
+
 function pintarSelectGeneros(seleccion, destino) {
   const sel = destino || $('#f-genero');
   sel.textContent = '';
@@ -2882,7 +2897,53 @@ function pintarSelectGeneros(seleccion, destino) {
     o.textContent = g.nombre;
     sel.appendChild(o);
   }
+  // Crear uno aqui mismo, sin abrir la ventana de generos ni perder lo que se
+  // este cargando. Va al final, detras de un separador.
+  const nuevo = document.createElement('option');
+  nuevo.value = NUEVO_GENERO;
+  nuevo.textContent = '+ Nuevo genero...';
+  sel.appendChild(nuevo);
+
   sel.value = seleccion || '';
+  // Para poder volver atras si se arrepiente en el cuadro de texto.
+  sel.dataset.antes = sel.value;
+}
+
+// Devuelve el id de genero que hay que usar despues de tocar un desplegable.
+// Si se eligio "+ Nuevo genero...", lo crea y lo deja seleccionado; si se
+// arrepiente, devuelve el que habia. El resto de la app no se entera.
+async function resolverGenero(sel) {
+  const antes = sel.dataset.antes || '';
+  const volver = () => { pintarSelectGeneros(antes, sel); return antes || null; };
+
+  if (sel.value !== NUEVO_GENERO) {
+    sel.dataset.antes = sel.value;
+    return sel.value || null;
+  }
+
+  const nombre = (prompt('Nombre del nuevo genero:') || '').trim();
+  if (!nombre) return volver();
+
+  // Si ya existe, se usa el que hay en vez de crear un duplicado.
+  const ya = generos.find((g) => normalizar(g.nombre) === normalizar(nombre));
+  if (ya) { pintarSelectGeneros(ya.id, sel); return ya.id; }
+
+  if (!db) { alert('Sin almacenamiento no se pueden crear generos.'); return volver(); }
+
+  const id = nuevoId();
+  try {
+    await db.doc('generos/' + id).set({nombre});
+  } catch (e) {
+    alert('No se pudo crear el genero (' + (e.code || e.message) + ').');
+    return volver();
+  }
+  // Se mete en la lista sin esperar al onSnapshot, que llegara enseguida y la
+  // dejara igual: asi el desplegable ya lo ensena al repintarse.
+  if (!generos.some((g) => g.id === id)) generos.push({id, nombre});
+  generos.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', {sensitivity: 'base'}));
+  pintarSelectGeneros(id, sel);
+  pintarLista();
+  return id;
 }
 
 function abrirEditor(cancion) {
@@ -2946,7 +3007,9 @@ async function guardar() {
     capo: $('#f-capo').value || 0,
     etiquetas: $('#f-etiquetas').value,
     contenido: $('#f-contenido').value,
-    genero_id: $('#f-genero').value || null,
+    // Nunca el centinela: si el cuadro de texto se cancelo, el desplegable
+    // vuelve solo, pero guardar no puede depender de eso.
+    genero_id: ($('#f-genero').value === NUEVO_GENERO ? null : $('#f-genero').value) || null,
     columnas: $('#f-columnas').value || 1,
   };
   if (!datos.titulo.trim()) {
@@ -3206,6 +3269,7 @@ $('#borrado').onclick = (e) => { if (e.target.id === 'borrado') cerrarBorrado();
 
 $('#velocidad').oninput = (e) => ponerVelocidad(+e.target.value);
 
+$('#f-genero').onchange = (e) => resolverGenero(e.target);
 $('#btn-cerrar').onclick = cerrarEditor;
 $('#btn-guardar').onclick = guardar;
 $('#f-contenido').oninput = refrescarPrevia;
@@ -3215,10 +3279,11 @@ $('#editor').onclick = (e) => { if (e.target.id === 'editor') cerrarEditor(); };
 $('#f-lote').onchange = (e) => abrirLote(e.target.files);
 $('#btn-cerrar-lote').onclick = cerrarLote;
 $('#btn-guardar-lote').onclick = guardarLote;
-$('#f-lote-genero').onchange = (e) => {
+$('#f-lote-genero').onchange = async (e) => {
   // El desplegable de abajo pone el mismo genero a todas; despues se puede
   // afinar fila a fila sin que este lo vuelva a pisar.
-  for (const f of lote) f.genero_id = e.target.value || null;
+  const id = await resolverGenero(e.target);
+  for (const f of lote) f.genero_id = id;
   pintarLote();
 };
 $('#lote').onclick = (e) => { if (e.target.id === 'lote') cerrarLote(); };
