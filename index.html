@@ -125,7 +125,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
    1500 se ve todo con letra entera. */
 @media (min-width:761px) and (max-width:1500px){
   #marca{display:none}
-  #vel-txt{display:none}
   #capo-ctrl .etiqueta{display:none}
   #acciones .btn{font-size:0;padding:6px 9px}
   #acciones .btn::before{content:attr(data-corto);font-size:12px;font-weight:500}
@@ -134,7 +133,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
     display:inline-flex;align-items:center;justify-content:center;
   }
   #controles #btn-scroll::before{content:attr(data-corto);font-size:13px}
-  #velocidad{width:80px}
 }
 /* Los controles de la cancion viven aqui arriba: la fila del titulo queda
    limpia y la cancion se lleva todo el alto que sobra. */
@@ -266,24 +264,27 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 /* Los botones (.btn y el tono) tienen fondo claro pero no declaran color:
    dentro de la cabecera oscura heredaban el blanco y se volvian invisibles.
    Se vio en el movil: la flecha de volver era un cuadro vacio. */
-#cabecera .btn,#cabecera #tono-ctrl button,#cabecera #capo-ctrl button{color:var(--texto)}
-#cabecera .btn:hover,#cabecera #tono-ctrl button:hover,#cabecera #capo-ctrl button:hover{color:var(--acento)}
-#cabecera #tono-ctrl button:hover,#cabecera #capo-ctrl button:hover{color:var(--acento-txt)}
+#cabecera .btn,#cabecera #tono-ctrl button,#cabecera #capo-ctrl button,#cabecera #vel-ctrl button{color:var(--texto)}
+#cabecera .btn:hover,#cabecera #tono-ctrl button:hover,#cabecera #capo-ctrl button:hover,#cabecera #vel-ctrl button:hover{color:var(--acento)}
+#cabecera #tono-ctrl button:hover,#cabecera #capo-ctrl button:hover,#cabecera #vel-ctrl button:hover{color:var(--acento-txt)}
 #cabecera #btn-capo.puesta{color:var(--acento-txt)}
 #cabecera .btn.activo{color:var(--acento-txt)}
-#cabecera #tono-ctrl,#capo-ctrl{border-color:rgba(255,255,255,.25)}
+#cabecera #tono-ctrl,#capo-ctrl,#vel-ctrl{border-color:rgba(255,255,255,.25)}
 /* Sobre la cabecera oscura el gris de texto secundario no se lee. */
-#cabecera #posicion,#cabecera #vel-txt{
+#cabecera #posicion{
   color:rgba(255,255,255,.62);
 }
 
-#velocidad{width:96px;accent-color:var(--acento)}
-#vel-txt{color:var(--suave);font-size:12px;min-width:26px;font-variant-numeric:tabular-nums}
+
 .sep{flex:1}
 
-#tono-ctrl,#capo-ctrl{display:flex;border:1px solid var(--borde);border-radius:7px;overflow:hidden}
-#tono-ctrl button,#capo-ctrl button{padding:7px 11px;font-size:13px;background:var(--panel)}
-#tono-ctrl button:hover,#capo-ctrl button:hover{background:var(--acento);color:var(--acento-txt)}
+#tono-ctrl,#capo-ctrl,#vel-ctrl{display:flex;border:1px solid var(--borde);border-radius:7px;overflow:hidden}
+#tono-ctrl button,#capo-ctrl button,#vel-ctrl button{padding:7px 11px;font-size:13px;background:var(--panel)}
+#tono-ctrl button:hover,#capo-ctrl button:hover,#vel-ctrl button:hover{background:var(--acento);color:var(--acento-txt)}
+#btn-vel{font-family:var(--mono);font-weight:600;min-width:38px;font-variant-numeric:tabular-nums}
+/* Al tope no hay nada mas que dar: el boton lo dice en vez de fingir. */
+#vel-ctrl button[disabled]{opacity:.4;cursor:default}
+#vel-ctrl button[disabled]:hover{background:var(--panel);color:inherit}
 #btn-capo{font-family:var(--mono);font-weight:600;min-width:54px;font-variant-numeric:tabular-nums}
 #btn-capo.puesta{color:var(--acento-txt);background:var(--acento)}
 #btn-tono{
@@ -669,7 +670,9 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   #controles .btn,#tono-ctrl button,#acciones .btn{padding:5px 8px;font-size:12px}
   /* El tono se pulsa con la guitarra colgada y sin mirar: 21x28 se quedaba
      por debajo del minimo accesible (24) y muy lejos del comodo (44). */
-  #controles #tono-ctrl button,#controles #capo-ctrl button{height:44px;min-width:38px;padding:0 10px}
+  #controles #tono-ctrl button,#controles #capo-ctrl button,#controles #vel-ctrl button{
+    height:44px;min-width:38px;padding:0 10px;
+  }
   #btn-capo{min-width:42px}
   /* Una sola fila que se desliza: partirla en dos se comia otra franja de
      pantalla, y aqui lo que tiene que ocupar sitio es la cancion. */
@@ -690,12 +693,10 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   #cabecera #btn-nueva::before,#controles #btn-scroll::before,#cabecera #btn-instalar::before{
     content:attr(data-corto);font-size:14px;
   }
-  #vel-txt{display:none}
-  /* El deslizador solo cuando hace falta: mientras no corre el autoscroll son
-     70 px robados al nombre de la cancion, que es lo unico que hay que leer
-     de un vistazo. */
-  #controles #velocidad{display:none;width:74px}
-  #controles #btn-scroll.activo ~ #velocidad{display:inline-block}
+  /* La velocidad solo cuando hace falta: parada son 100 px robados al nombre
+     de la cancion, que es lo unico que hay que leer de un vistazo. */
+  #controles #vel-ctrl{display:none}
+  #controles #btn-scroll.activo ~ #vel-ctrl{display:flex}
   #acciones{
     position:absolute;top:100%;left:0;z-index:6;
     flex-direction:column;flex-wrap:nowrap;gap:4px;padding:6px 0 0 3px;
@@ -717,7 +718,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   #btn-nueva{padding:7px 11px}
   #cabecera .icono{width:34px;height:34px}
   #btn-tono{min-width:46px}
-  #velocidad{width:72px}
   #taller{flex-direction:column}
   #f-contenido{border-right:0;border-bottom:1px solid var(--borde);min-height:38vh}
   #previa{min-height:22vh}
@@ -756,8 +756,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
         <button class="btn" id="btn-editar" data-corto="&#9998;" title="Editar la cancion">Editar</button>
       </div>
       <button class="btn" id="btn-scroll" data-corto="&#9654;">&#9654; Autoscroll</button>
-      <input id="velocidad" type="range" min="4" max="60" step="1" title="Velocidad del autoscroll" aria-label="Velocidad del autoscroll">
-      <span id="vel-txt"></span>
+      <div id="vel-ctrl">
+        <button id="btn-vel-menos" title="Mas despacio" aria-label="Bajar la velocidad">&minus;</button>
+        <button id="btn-vel" title="Velocidad del autoscroll. Pulsa para volver a la de siempre." aria-live="polite">16</button>
+        <button id="btn-vel-mas" title="Mas rapido" aria-label="Subir la velocidad">+</button>
+      </div>
       <div id="tono-ctrl">
         <button id="btn-bajar" title="Bajar medio tono" aria-label="Bajar medio tono">&#9837;</button>
         <button id="btn-tono" title="Volver al tono original">&mdash;</button>
@@ -2537,10 +2540,15 @@ function pararScroll() {
   $('#btn-scroll').classList.remove('activo');
 }
 
+// De dos en dos: con pasos de uno hacen falta 56 pulsaciones para cruzar el
+// rango entero y la diferencia no se nota al leer.
+const VEL_PASO = 2, VEL_NORMAL = 16;
+
 function ponerVelocidad(v) {
-  pref.vel = entre(v, VEL_MIN, VEL_MAX, 16);
-  $('#velocidad').value = pref.vel;
-  $('#vel-txt').textContent = pref.vel;
+  pref.vel = entre(v, VEL_MIN, VEL_MAX, VEL_NORMAL);
+  $('#btn-vel').textContent = pref.vel;
+  $('#btn-vel-menos').disabled = pref.vel <= VEL_MIN;
+  $('#btn-vel-mas').disabled = pref.vel >= VEL_MAX;
   guardar1('vel', pref.vel);
 }
 
@@ -3822,7 +3830,9 @@ $('#f-duplicadas').onchange = pintarBorrado;
 $('#btn-asignar-genero').onclick = asignarGeneroMarcadas;
 $('#borrado').onclick = (e) => { if (e.target.id === 'borrado') cerrarBorrado(); };
 
-$('#velocidad').oninput = (e) => ponerVelocidad(+e.target.value);
+$('#btn-vel-menos').onclick = () => ponerVelocidad(pref.vel - VEL_PASO);
+$('#btn-vel-mas').onclick = () => ponerVelocidad(pref.vel + VEL_PASO);
+$('#btn-vel').onclick = () => ponerVelocidad(VEL_NORMAL);
 
 $('#f-genero').onchange = (e) => resolverGenero(e.target);
 $('#btn-cerrar').onclick = cerrarEditor;
